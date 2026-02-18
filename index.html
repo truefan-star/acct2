@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Study Hub</title>
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Style for preserving document formatting in questions */
+        .pre-wrap { white-space: pre-line; word-break: break-word; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-normal">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS ---
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const icons = {
+                Home: <><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
+                BookOpen: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+                List: <><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>,
+                Save: <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
+                Award: <><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>,
+                ChevronLeft: <polyline points="15 18 9 12 15 6"/>,
+                ChevronRight: <polyline points="9 18 15 12 9 6"/>,
+                RefreshCcw: <><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>,
+                CheckCircle2: <><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></>,
+                XCircle: <><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || null}
+                </svg>
+            );
+        };
+
+        // --- FULL VERBATIM QUESTION DATA (Verified Units 4, 5, 6) ---
+        const QUIZ_DATA = {
+            "Unit 4: Depreciation": [
+                { id: 1, question: "What is the major difference between the service life of an asset and its physical life?", options: ["Physical life is the life of an asset without consideration of salvage value, and service life requires the use of salvage value.", "Service life refers to the length of time an asset of use to its original owner, while physical life refers to how long the asset will be used by all owners.", "Service life refers to the time an asset will be used by a company, and physical life refers to how long the asset will last.", "Service life refers to the time an asset will be used by a company and physical life refers to how long the asset will last."], answer: 2 },
+                { id: 2, question: "Dixon Company purchased a depreciable asset for $32,000. The estimated salvage value is $4,000, and the estimated useful life is 4 years. The double-declining balance method will be used for depreciation.\nWhat is the depreciation expense for the second year on this asset?", options: ["$8,000", "$6,400", "$16,000", "$7,000"], answer: 0 },
+                { id: 3, question: "Which of the following principles best describes the conceptual rationale for the methods of matching depreciation expense with revenues?", options: ["Immediate recognition", "Associating cause and effect", "Systematic and rational allocation", "Partial recognition"], answer: 2 },
+                { id: 4, question: "Which of the following is a principal objection to the straight-line method of depreciation?", options: ["It provides for the declining productivity of an aging asset.", "It tends to result in a constant rate of return on a diminishing investment base.", "It assumes that the asset’s economic usefulness is the same each year.", "It gives smaller periodic write-offs than decreasing charge methods."], answer: 2 },
+                { id: 5, question: "The term \"depreciable base,\" or \"depreciation base,\" as it is used in accounting, refers to which of the following?", options: ["The total amount to be charged to expense over an asset's useful life", "The cost of the asset less the related depreciation recorded to date", "The acquisition cost of the asset regardless of its useful life", "The estimated market value of the asset at the end of its useful life"], answer: 0 },
+                { id: 6, question: "Chattanooga Company purchased a depreciable asset for $80,000 on January 1, 2015. The estimated salvage value is $20,000, and the estimated useful life is 5 years. The straight-line method is used for depreciation. On January 1, 2017, the company made a capital expenditure of $16,000 for an addition to the asset. This capital expenditure improved the overall efficiency of the asset during its remaining useful life.\nWhat is depreciation expense for 2017? (Assume that salvage value remains unchanged.)", options: ["$14,400", "$17,333", "$24,000", "$25,333"], answer: 1 },
+                { id: 7, question: "Unless otherwise stipulated, what is depreciation normally computed on the basis of?", options: ["A full year’s depreciation in the period of acquisition, none in the period of disposal", "The nearest full month", "The nearest fraction of a year", "A half-year’s depreciation in the period of acquisition and in the period of disposal"], answer: 1 },
+                { id: 8, question: "Cambodian Import Company purchased a depreciable asset for $160,000 on April 1, 2014. The estimated salvage value is $40,000, and the estimated useful life is 5 years. The straight-line method is used for depreciation.\nWhat is the balance in accumulated depreciation on March 1, 2017 when the asset is sold?", options: ["$66,000", "$70,000", "$72,000", "$186,667"], answer: 1 },
+                { id: 9, question: "When an asset being depreciated under the group method is disposed of, how is any resulting gain or loss recorded?", options: ["Recorded as an extraordinary gain or loss", "Recorded in the Depreciation Expense account", "Recorded in the Accumulated Depreciation account", "Recorded as an ordinary gain or loss"], answer: 2 },
+                { id: 10, question: "How can the composite or group depreciation system be described?", options: ["The original cost of all items in a given group or class of assets is retained in the asset account and the cost of replacements is charged to expense when they are acquired", "The cost of individual units within an asset group is charged to expense in the year a unit is retired from service", "A straight-line rate is computed by dividing the total of the annual depreciation expense for all assets in the group by the total cost of the assets", "The years of useful life of the various assets in the group are added together and the total divided by the number of items"], answer: 2 },
+                { id: 11, question: "Erie Corporation owns machinery with a book value of $2,200,000. It is estimated that the machinery will generate future cash flows of $1,995,000. The machinery has a fair value of $1,915,000.\nTo record the impairment loss, what should be included in the journal entry?", options: ["A $285,000 credit to the asset account", "An extraordinary loss of $80,000", "A reduction of income from continuing operations by $205,000", "An increase in the asset’s Accumulated Depreciation account by $285,000"], answer: 3 },
+                { id: 12, question: "Flannery Corporation owns machinery with a book value of $520,000. It is estimated that the machinery will generate future cash flows of $465,000. The machinery has a fair value of $415,000.\nWhich amount should Florence recognize as a loss on impairment?", options: ["$0", "$55,000", "$50,000", "$105,000"], answer: 3 },
+                { id: 13, question: "When is the restoration of an impairment loss permitted?", options: ["On all tangible assets whether held for use of disposal", "On assets held for use", "On assets being held for disposal", "On assets that have already been disposed"], answer: 2 },
+                { id: 14, question: "An asset impairment occurs when the asset's carrying amount exceeds what amount?", options: ["Asset's fair value", "Present value of expected future net cash flows", "Expected future net cash flows", "Asset's book value"], answer: 2 },
+                { id: 15, question: "What is true about depletion expense?", options: ["It excludes restoration costs from the depletion base.", "It is usually part of cost of goods sold.", "It excludes intangible development costs from the depletion base.", "It includes tangible equipment costs in the depletion base."], answer: 1 },
+                { id: 16, question: "Usually, companies compute depletion for accounting purposes using which method?", options: ["Decreasing charge method", "Units-of-production method", "Straight-line method", "Percentage depletion method"], answer: 1 },
+                { id: 17, question: "Porter Resources Company acquired a tract of land containing an extractable natural resource. Porter is required by its purchase contract to restore the land to a condition suitable for recreational use after it has extracted the natural resource. Geological surveys estimate that the recoverable reserves will be 2,500,000 tons, and that the land will have a value of $1,000,000 after restoration. Relevant cost information includes: Land at $7,500,000 and Estimated restoration costs of $1,500,000.\n\nIf Porter maintains no inventories of extracted material, what should be the charge to depletion expense per ton of extracted material?", options: ["$3.6", "$3.0", "$3.2", "$2.6"], answer: 2 },
+                { id: 18, question: "In 2020, Bargain Shop reported net income of $5.7 billion, net sales of $175 billion, and average total assets of $75 billion.\nWhat is Bargain shop's asset turnover?", options: ["2.33 times", "0.08 times", "13.2 times", "0.29 times"], answer: 0 },
+                { id: 19, question: "For 2020, Hammer Company reports beginning of the year total assets of $900,000, end of the year total assets of $1,100,000, net sales of $1,000,000, and net income of $200,000.\nWhat is Hammer's return on assets for 2020?", options: ["20.0%", "18.2%", "22.20%", "16.0%"], answer: 0 },
+                { id: 20, question: "In its 2017 annual report, Crane Manufacturing Company reports beginning-of-the-year total assets of $2,682,000, end-of-the-year total assets of $2,883,000, total sales of $4,726,000, and net income of $785,000.\nWhat is Crane's Profit Margin on Sales?", options: ["28.20%", "28.21%", "16.61%", "40.13%"], answer: 2 },
+                { id: 21, question: "What is true regarding a general description of the depreciation methods applicable to major classes of depreciable assets?", options: ["It is not a current practice in financial reporting to report depreciation.", "It is necessary to report depreciation in financial reporting only when company policy differs from income tax policy.", "It is necessary to include depreciation in corporate financial statements or notes thereto.", "It is not essential to a fair presentation of financial position to report depreciation."], answer: 2 },
+                { id: 22, question: "How do you calculate the asset turnover ratio?", options: ["Net sales/average total assets", "Net income/average total assets", "Net income/ending total assets", "Net sale/ending total assets"], answer: 0 },
+                { id: 23, question: "What is the book value of a plant asset equal to?", options: ["The assessed value of the asset for property tax purposes", "The fair market value of the asset at a balance sheet date", "The asset's acquisition cost less the total related depreciation recorded to date", "The balance of the related accumulated depreciation account"], answer: 2 },
+                { id: 24, question: "Lundy Company purchased a depreciable asset for $99,000 on January 1. The estimated salvage value is $18,000, and the estimated useful life is 9 years. The double-declining balance method will be used for depreciation.\nWhat is the depreciation expense for the second year on this asset? (Please round the double-declining balance rate to 2 decimal places, e.g. 0.35 or 35% in your intermediate calculations.)", options: ["$17,820", "$11,000", "$13,900", "$16,988"], answer: 3 },
+                { id: 25, question: "For 2017, Lassiter Company reports beginning of the year total assets of $900,000, end of the year total assets of $1,100,000, net sales of $1,250,000, and net income of $250,000.\nWhat is Lassiter’s 2017 asset turnover ratio?", options: ["23 times", "125 times", "25 times", "114 times"], answer: 1 },
+                { id: 26, question: "Mains Corporation owns equipment with a cost of $290,000 and accumulated depreciation at December 31, 2017 of $150,000. It is estimated that the machinery will generate future cash flows of $165,000. The machinery has a fair value of $115,000.\nWhich of the following should be recognized as a loss on impairment?", options: ["$15,000", "$35,000", "$25,000", "$0"], answer: 3 },
+                { id: 27, question: "McDonald Company acquired machinery on January 1, 2015 which it depreciated under the straight-line method with an estimated life of fifteen years and no salvage value. On January 1, 2020, McDonald estimated that the remaining life of this machinery was six years with no salvage value.\nHow should this change be accounted for by McDonald?", options: ["$25,000", "$30,000", "$40,000", "$50,000"], answer: 1 },
+                { id: 28, question: "How do you compute the return on total assets?", options: ["Divide net income by average total assets", "Divide net sales by average total assets", "Divide net income by ending total assets", "Divide net sales by ending total assets"], answer: 0 },
+                { id: 29, question: "Recent, negative events in an operating division have caused a company to believe that it is possible that it will not be able to fully recover the book value of a group of assets.\nWhat is the first step the company should take in reviewing the assets?", options: ["Determine if an impairment exists because the assets' book value is greater than the expected future cash flows (undiscounted)", "Measure the amount of impairment as the excess of the assets' fair value over their book value", "Determine if an impairment exists because the assets' expected future cash flows (undiscounted) are greater than their book value", "Measure the amount of impairment as the excess of the assets' book value over their fair value"], answer: 0 },
+                { id: 30, question: "A company placed an asset into service on Day 1 of Year 1 with the following data related to the purchase:\nCost of machinery: $225,000\nEstimated salvage value: $75,000\nProduct life hours: 75,000 hours\nUseful life: 5 years\nHours used in Year 1:\t5,000 hours\n\nWhich amount of annual depreciation expense should be recorded in the first year using the straight-line method?", options: ["$10,000", "$90,000", "$30,000", "$45,000"], answer: 2 },
+                { id: 31, question: "A company purchased a plot of land for $550,000 in July 2015, which included $500,000 for the land and $50,000 for attorney's fees. In December 2019, the company paid $100,000 to clear debris off the land. The company believes the fair market value of the land is $700,000 as of December 2019.\nWhich depletion base should the company use when it begins to harvest timber from this land?", options: ["$600,000", "$500,000", "$650,000", "$700,000"], answer: 2 },
+                { id: 32, question: "A company purchased a plot of land for $140,000 for the purposes of harvesting timber for resale. The company estimates that it will be able to sell the land for $40,000 after it harvests all the timber and believes it will harvest 50,00 board-feet of lumber from the land over the next 10 years.\nWhich depletion rate should the company use?", options: ["$14,000 per year", "$2.00 per board-foot", "$10,000 per year", "$2.80 per board-foot"], answer: 1 },
+                { id: 33, question: "A company placed an asset into service on Day 1 of Year 1 with the following data related to the purchase:\n Cost of machinery: $225,000\nEstimated salvage value: $75,000\nProduct life hours: 75,000 hours\nUseful life: 5 years\nHours used in Year 1: 5,000 hours\n\nWhat is the book value of the machinery at the end of Year 1 after recording annual depreciation using the double-declining balance method?", options: ["$225,000", "$135,000", "$180,000", "$195,000"], answer: 1 },
+                { id: 34, question: "The selected financial statement information for a company includes the following items:\n· total assets of $300,000 at the end of the current year\n· total assets of $500,000 at the end of the prior year\n· net sales of $3,000,000 in the current year\n· net income of $1,200,000 in the current year\n\nWhat is the asset turnover for the current year?", options: ["4.0", "3.0", "10.0", "7.5"], answer: 3 },
+                { id: 35, question: "A company spends $180,000,000 to purchase and prepare a quarry to mine granite and expects to mine 400,000 tons of granite. The salvage value of the property is $15,000,000, and the expected useful life of the property is 15 years.\nWhat is the proper journal entry to record depletion if the company extracts 80,000 tons in the first year?", options: ["Debit depreciation expense for $36,000,000; credit accumulated depreciation for $36,000,000", "Debit inventory for $36,000,000; credit granite quarry for $36,000,000", "Debit inventory for $33,000,000; credit granite quarry for $33,000,000", "Debit depreciation expense for $33,000,000; credit accumulated depreciation for $33,000,000"], answer: 2 },
+                { id: 36, question: "A company invests $50,000,000 into a coal mine estimated to have 20 million tons of coal. The company estimates that it can sell the coal mine for $3,000,000 after it spends $1,000,000 to restore the property after extraction. In Year 1, the company extracted and sold 4,000,000 tons of coal.\nHow much depletion expense is incurred in Year 1?", options: ["$9,400,000", "$10,000,000", "$10,200,000", "$9,600,000"], answer: 3 },
+                { id: 37, question: "A company has a policy of calculating depreciation using the nearest fraction of a year policy. On May 10, the company purchased and placed in service an asset costing $50,000 with a five-year useful life.\nWhich prorated fraction was used to calculate the depreciation expense on December 31?", options: ["7.33/12", "7.00/12", "8.00/12", "7.67/12"], answer: 3 },
+                { id: 38, question: "A company reported the following information in its annual report:\nNet sales: $750,000\nTotal assets at the end of year 2:$ 500,000\nTotal assets at the end of year 1: $450,000\nNet income:$ 120,000\n\nWhat is the company's asset turnover ratio at the end of year 2?", options: ["0.25", "0.24", "1.67", "1.58"], answer: 3 },
+                { id: 39, question: "A company purchases an asset on April 5 of the current year. The company would like to use the depreciation policy that will result in the highest deprecation expense in the last year of its useful life. Which depreciation policy should be used?", options: ["Full year in acquisition period", "Nearest fraction of the year", "Nearest full month", "Half-year convention"], answer: 3 },
+                { id: 40, question: "A pizza delivery chain buys several assets with varying useful lives at the start of the year and is trying to determine which special depreciation method to use. The following assets were purchased:\n12 delivery trucks\n4 pizza ovens\n6 point-of-sale systems\n20 sets of tables and chairs\n\nWhich depreciation method allows the pizza delivery chain to use one rate to depreciate all the assets?", options: ["Composite", "Group", "Per unit", "Hybrid"], answer: 0 },
+                { id: 41, question: "A company wants to calculate a loss on impairment on an asset.\nHow is the loss calculated?", options: ["Carrying value less the fair value", "Original cost less the carrying value", "Carrying value less the expected future cash flow (undiscounted)", "Original cost less the fair value"], answer: 0 },
+                { id: 42, question: "The asset turnover for a company in the most recent accounting year is 1.50.\nWhich statement accurately describes the meaning of this ratio?", options: ["The company had 1.50 more assets than net income in the current year.", "The company generated net sales of $1.50 per dollar of assets in the most recent year.", "The company had 1.50 times more assets than net sales in the current year.", "The company generated a net income of $1.50 per dollar of assets in the most recent year."], answer: 1 },
+                { id: 43, question: "A company purchased and placed into service a piece of machinery with an original cost of $100,000. It estimates a 10-year useful life with no salvage value. At the beginning of Year 8, when accumulated depreciation was $70,000 and the asset's book value was $30,000, the company estimates that it will use the machine for a total of 12 years.\nWhich statement describes the proper accounting treatment beginning with Year 8?", options: ["The company will depreciate the $30,000 book value over the next 12 years.", "The company will depreciate the $30,000 book value over the next five years.", "The company will depreciate $100,000 over the next five years.", "The company will depreciate $100,000 over the next 12 years."], answer: 1 },
+                { id: 44, question: "A company purchased a plot of land for $500,000 for the purposes of harvesting timber for resale. The company paid $10,000 to have the property boundaries marked by a land surveyor. The company also acquired a bulldozer for $100,000. The bulldozer will be used at this plot of land in addition to other locations where the company harvests trees.\nWhat will be the company's depletion base for the land?", options: ["$510,000", "$490,000", "$500,000", "$610,000"], answer: 0 },
+                { id: 45, question: "A company owns an asset with an original cost of $300,000 and a current book value of $160,000. In reviewing the asset for impairment, the company estimates that the expected future cash flows from the use and disposal of the asset will be $220,000. The fair value of the asset, calculated as the present value of expected future cash flows, is $180,000. The company wants to identify why the asset is not considered impaired, according to the recoverability test.\nWhich statement identifies why the asset was not impaired?", options: ["The fair value is greater than accumulated depreciation.", "The expected future cash flows are greater than the book value.", "The expected future cash flows are greater than accumulated depreciation.", "The fair value is greater than the book value."], answer: 1 },
+                { id: 46, question: "A company believes a property contains natural resources and pays $80,000 for the property. The company spends $50,000 on a bulldozer to be used in multiple projects, $10,000 to dig the land to find the natural resources, and $3,000 on intangible development costs.\nHow much is the depletion base for the natural resources?", options: ["$80,000", "$133,000", "$93,000", "$143,000"], answer: 2 },
+                { id: 47, question: "A company placed an asset into service on Day 1 of Year 1 with the following data related to the purchase:\n Cost of machinery\t$225,000\nEstimated salvage value\t$75,000\nProduct life hours\t75,000 hours\nUseful life\t5 years\nHours used in Year 1\t5,000 hours\n\nWhich amount of annual depreciation expense should be recorded at the end of Year 2 using the sum-of-years’-digits method?", options: ["$60,000", "$30,000", "$40,000", "$50,000"], answer: 2 },
+                { id: 48, question: "An asset costs $200,000 with an expected useful life of five years. At the end of five years, the salvage value is expected to be $20,000.\nWhat is the depreciation base?", options: ["$20,000", "$200,000", "$36,000", "$180,000"], answer: 3 }
+            ],
+            "Unit 5: Liabilities": [
+                { id: 1, question: "What defines liabilities?", options: ["Obligations arising from past transactions and payable in assets or services in the future", "Deferred credits that are recognized and measured in conformity with generally accepted accounting principles", "Obligations to transfer ownership shares to other entities in the future", "Any accounts having credit balances after closing entries are mad"], answer: 0 },
+                { id: 2, question: "Among the short-term obligations of Larsen Company as of December 31, the balance sheet date, are notes payable totaling $250,000 with the Dennison National Bank. These are 90-day notes, renewable for another 90-day period.\nHow should these notes be classified on the balance sheet of Larsen Company?", options: ["Long-term liabilities", "Current liabilities", "Intermediate debt", "Deferred charges"], answer: 1 },
+                { id: 3, question: "For what purpose is the current liability section of the balance sheet of primary importance to bankers?", options: ["To better understand sources of repayment", "To evaluate the entity's credit quality", "Banks use the balance sheet to ascertain the liquidity of a company - the ability of the company to pay it's obligations.", "To evaluate operating efficiency"], answer: 2 },
+                { id: 4, question: "What, if any, is the relationship between current liabilities and a company's operating cycle?", options: ["Liquidation of current liabilities is reasonably expected within one year of the company's balance sheet date or the company's operating cycle, whichever is greater.", "The length of the operating cycle is not relevant to the reported dollar amount of current liabilities on the balance sheet.", "Current liabilities cannot exceed the dollar amount of liabilities incurred in total over three operating cycles.", "Current liabilities are the result of operating transactions over the company's operating cycle."], answer: 0 },
+                { id: 5, question: "Posner Co. is a retail store operating in a state with a 7% retail sales tax. The retailer may keep 2% of the sales tax collected. Posner Co. records the sales tax in the Sales Revenue account. The amount recorded in the Sales Revenue account during May was $754,350.\nWhat is the amount of sales tax (to the nearest dollar) for May?", options: ["$49,350", "$52,806", "$62,286", "$67,893"], answer: 0 },
+                { id: 6, question: "Posner Co. is a retail store operating in a state with a 7% retail sales tax. The retailer may keep 2% of the sales tax collected. Posner Co. records the sales tax in the Sales Revenue account. The amount recorded in the Sales Revenue account during May was $754,350.\nWhat is the amount of sales tax payable (to the nearest dollar) for May?", options: ["$48,363", "$62,286", "$51,750", "$49,350"], answer: 0 },
+                { id: 7, question: "When is a contingent liability recorded?", options: ["When the future events will possibly occur and the amount can be reasonably estimated", "When the future events are probable to occur", "When the amount can be reasonably estimated", "When the future events are probable to occur and the amount can be reasonably estimated"], answer: 3 },
+                { id: 8, question: "Which of the following is an example of a contingent liability?", options: ["Pending court case with a probable favorable outcome", "Tax loss carryforwards", "Possible receipt from a litigation settlement", "Obligations related to product warranties"], answer: 3 },
+                { id: 9, question: "Which term is associated with recording a contingent liability?", options: ["Possible", "Probable", "Likely", "Remote"], answer: 1 },
+                { id: 10, question: "What is the proper way to report some gain contingencies?", options: ["As deferred revenue", "As an accrued amount", "As an account receivable", "As a disclosure only"], answer: 3 },
+                { id: 11, question: "Information available prior to the issuance of the financial statements indicates that it is probable that, at the date of the financial statements, a liability has been incurred for obligations related to product warranties. The amount of the loss involved can be reasonably estimated.\nBased on the above facts, how should the company report the estimated loss contingency?", options: ["Accrued but not disclosed", "Classified as an appropriation of retained earnings", "Accrued and disclosed", "Disclosed but not accrued"], answer: 2 },
+                { id: 12, question: "Sandy Shoes Foot Inc. is involved in litigation regarding a faulty product sold in a prior year. The company has consulted with its attorney and determined that it is possible that they may lose the case. The attorney estimated that there is a 40% chance of losing. If this is the case, their attorney estimated that the amount of any payment would be $800,000.\nHow should this contingent liability be recorded?", options: ["Debit Litigation Expense for $320,000 and credit Litigation Liability for $320,000.", "Debit Litigation Expense for $800,000 and credit Litigation Liability for $800,000.", "No journal entry is needed.", "Debit Litigation Expense for $480,000 and credit Litigation Liability for $480,000."], answer: 2 },
+                { id: 13, question: "How are accrued liabilities disclosed in the financial statements?", options: ["As an appropriation of retained earnings", "As a footnote to the statements", "By appropriately classifying them as regular liabilities in the balance sheet", "Shown among the liabilities but not extending the amount to the liability total"], answer: 2 },
+                { id: 14, question: "The acid-test ratio relates total current liabilities to cash and what other account(s)?", options: ["Short-term investments and receivables", "Receivables and inventory", "Receivables", "Short-term investments"], answer: 0 },
+                { id: 15, question: "What does the current ratio inform you about a company?", options: ["The efficient use of assets", "The extent of slow-moving inventories", "The company's liquidity", "The company's profitability"], answer: 2 },
+                { id: 16, question: "Presented below is information available for Marley Company.\nCurrent Assets\nCash: $4,000\nShort-term investments: $55,000\nAccounts receivable: $61,000\nInventory: $110,000\nPrepaid expenses: $30,000\nTotal current assets $260,000\nTotal current liabilities are $100,000.\nWhat is the acid-test ratio for Marley?", options: ["2.30 to 1", "0.59 to 1", "2.60 to 1", "1.20 to 1"], answer: 3 },
+                { id: 17, question: "How do you determine the acid-test ratio?", options: ["Current Assets / Short Term Debt", "Current Assets / Current Liabilities", "Cash + Short Term Investments) / Short Term Debt", "Cash + Short Term Investments + Net Receivables ) / Current Liabilities"], answer: 3 },
+                { id: 18, question: "How are accrued liabilities disclosed in the financial statements?", options: ["As an appropriation of retained earnings", "By appropriately classifying them as regular liabilities in the balance sheet", "As a footnote to the statements", "The amount is shown among the liabilities but not extending it to the liability total."], answer: 1 },
+                { id: 19, question: "Bargain Surplus made cash sales during the month of October of $375,000. The sales are subject to a 6% sales tax that was also collected.\nWhat would be included in the summary journal entry to reflect the sale transactions?", options: ["Credit Sales Revenue for $347,483", "Credit Sales Taxes Payable for $22,500", "Debit Accounts Receivable for $375,000", "Credit Sales Taxes Payable for $21,226"], answer: 1 },
+                { id: 20, question: "Wooten Co. is being sued for illness caused to local residents as a result of negligence on the company's part in permitting the local residents to be exposed to highly toxic chemicals from its plant. Wooten's lawyer states that it is probable that Wooten will lose the suit and be found liable for a judgment costing Wooten anywhere from $1,800,000 to $9,000,000. However, the lawyer states that the most probable cost is $5,400,000.\nAs a result of the above facts, what is the correct treatment of Wooten's contingent obligation?", options: ["As a contingency of $1,800,000 to $9,000,000 with no loss contingency", "As a loss contingency of $1,800,000 and disclose an additional contingency of up to $7,200,000", "As a loss contingency of $5,400,000 and disclose an additional contingency of up to $3,600,000", "As a loss contingency of $5,400,000 but not disclose any additional contingency"], answer: 2 },
+                { id: 21, question: "Excom manufactures high-end whole home electronic systems. The company provides a one-year warranty for all products sold. The company estimates that the warranty cost is $300 per unit sold and reported a liability for estimated warranty costs $10.4 million at the beginning of this year.\nIf during the current year, the company sold 60,000 units for a total of $324 million and paid warranty claims of $12,000,000 on current and prior year sales, what amount of liability would the company report on its balance sheet at the end of the current year?", options: ["$3,733,333", "$18,000,000", "$6,000,000", "$16,400,000"], answer: 3 },
+                { id: 22, question: "What is the interest rate written in the terms of the bond indenture known as?", options: ["Market rate", "Effective rate", "Yield rate", "Stated rate"], answer: 3 },
+                { id: 23, question: "For which type of bond does the issuer have the right to call and retire the bonds prior to maturity?", options: ["Convertible bond", "Debenture bond", "Commodity-backed bond", "Callable bond"], answer: 3 },
+                { id: 24, question: "Pontchartrain Company issues $20,000,000, 7.8%, 20-year bonds to yield 8% on January 1, 2017. Interest is paid on June 30 and December 31. The proceeds from the bonds are $19,604,145. The company uses effective-interest amortization.\nWhat is the total interest expense reported on the 2017 income statement?", options: ["$1,560,000", "$1,568,498", "$1,529,115", "$1,600,000"], answer: 1 },
+                { id: 25, question: "Which is the rate of interest actually earned by bondholders?", options: ["Stated rate", "Coupon rate", "Nominal rate", "Effective rate"], answer: 3 },
+                { id: 26, question: "On October 1, 2020, Macklin Corporation issued 5%, 10-year bonds with a face value of $6,000,000 at 104. Interest is paid on October 1 and April 1, with any premiums or discounts amortized on a straight-line basis.\nWhat is the credit side of the journal entry to record the issuance of the bonds?", options: ["$6,090,000 Bond Payable and $150,000 to Interest Payable", "$5,760,000 to Bonds Payable and $480,000 to Premium on Bond Payable", "$6,000,000 Bond Payable and $240,000 to Premium on Bonds Payable", "$6,000,000 Bond Payable and $240,000 to Discount on Bonds Payable"], answer: 2 },
+                { id: 27, question: "On June 30, 2017, Baker Co. had outstanding 8%, $6,000,000 face amount, 15-year bonds maturing on June 30, 2027. Interest is payable on June 30 and December 31. The unamortized balance in the bond discount account on June 30, 2017 was $210,000. On June 30, 2017, Baker acquired all of these bonds at 94 and retired them.\nWhat net carrying amount should be used in computing gain or loss on this early extinguishment of debt?", options: ["$5,640,000", "$5,730,000", "$5,940,000", "$5,790,000"], answer: 3 },
+                { id: 28, question: "What is the generally accepted method of accounting for gains or losses from the early extinguishment of debt?", options: ["An amount received or paid to obtain a new debt instrument and, as such, should be amortized over the life of the new debt", "An amount that should be considered a cash adjustment to the cost of any other debt issued over the remaining life of the old debt instrument", "An adjustment to the cost basis of the asset obtained by the debt issue", "A difference between the reacquisition price and the net carrying amount of the debt which should be recognized in the period of redemption"], answer: 3 },
+                { id: 29, question: "Kant Corporation retires its $500,000 face value bonds at 102 on January 1, following the payment of interest. The carrying value of the bonds at the redemption date is $481,250.\nWhat does the entry to record the redemption include?", options: ["Debit of $28,750 to Gain on Bond Redemption", "Credit of $18,750 to Loss on Bond Redemption", "Credit of $18,750 to Discount on Bonds Payable", "Debit of $10,000 to Premium on Bonds Payable"], answer: 2 },
+                { id: 30, question: "At December 31, 2020 the following balances existed on the books of Rentro Corporation:\nBonds Payable: $7,000,000\nDiscount on Bonds Payable: $980,000\nInterest Payable: $168,000\nIf the bonds are retired on January 1, 2021, at 102, what will Rentro report as a loss on redemption?", options: ["$70,000", "$945,000", "$1,120,000", "$1,288,000"], answer: 3 },
+                { id: 31, question: "On January 1, 2017, Trinity Company loaned $901,560 to Litton Industries in exchange for a 3 year, zero-interest-bearing note with a face amount, $1,200,000. The prevailing rate of interest for a loan of this type is 10%.\nWhat is included in the adjusting journal entry made by Litton on December 31, 2017 with regard to the note?", options: ["A credit to Discount on Notes Payable for $90,156", "A debit to Interest Expense for $29,850", "A debit to Interest Expense for $120,000", "A credit to Interest Payable for $60,000"], answer: 0 },
+                { id: 32, question: "A debt instrument with no ready market is exchanged for property whose fair market value is currently indeterminable.\nWhen such a transaction takes place, what is true?", options: ["The board of directors of the entity receiving the property should estimate a value for the property that will serve as a basis for the transaction.", "It should not be recorded on the books of either party until the fair market value of the property becomes evident.", "The directors of both entities involved in the transaction should negotiate a value to be assigned to the property.", "The present value of the debt instrument must be approximated using an imputed interest rate."], answer: 3 },
+                { id: 33, question: "A corporation borrowed money from a bank to build a building. The long-term note signed by the corporation is secured by a mortgage that pledges title to the building as security for the loan. The corporation is to pay the bank $80,000 each year for 10 years to repay the loan.\nWhat relationship can you expect to apply to the situation?", options: ["The balance of mortgage payable at a given balance sheet date will be reported as a long-term liability.", "The balance of mortgage payable will remain a constant amount over the 10-year period.", "The amount of interest expense will remain constant over the 10-year period.", "The amount of interest expense will decrease each period the loan is outstanding."], answer: 3 },
+                { id: 34, question: "On January 1, 2020, Ann Price loaned $187,825 to Joe Kiger. A zero-interest-bearing note (face amount, $250,000) was exchanged solely for cash; no other rights or privileges were exchanged. The note is to be repaid on December 31, 2022. The prevailing rate of interest for a loan of this type is 10%. The present value of $250,000 at 10% for three years is $187,825.\nWhat amount of interest income should Ms. Price recognize in 2020?", options: ["$56,350", "$25,000", "$18,783", "$75,000"], answer: 2 },
+                { id: 35, question: "What is the numerator in the times interest earned ratio?", options: ["Net income + interest expense", "Net income", "Net income + (interest expense + income tax expense)", "Net income + income tax expense"], answer: 2 },
+                { id: 36, question: "How should long-term debt that matures within one year and is to be converted into stock be reported?", options: ["As noncurrent and accompanied with a note explaining the method to be used in its liquidation", "As noncurrent with no accompanying note", "As a current liability", "In a special section between liabilities and stockholders’ equity"], answer: 0 },
+                { id: 37, question: "How is the debt to assets ratio computed?", options: ["Long-term liabilities / total assets", "Current liabilities / total assets", "Total assets / total liabilities", "Total liabilities / total assets"], answer: 3 },
+                { id: 38, question: "Putnam Company’s 2021 financial statements contain the following selected data: Income taxes $40,000 Interest expense $25,000 Net income $60,000\nWhat is Putnam’s times interest earned ratio?", options: ["5.0 times", "4.0 times", "2.4 times", "3.4 times"], answer: 0 },
+                { id: 39, question: "On January 1, 2017, Kimbrough Inc. issued $5,000,000, 9% bonds for $4,695,000. The market rate of interest for these bonds is 10%. Interest is payable annually on December 31. Kimbrough uses the effective-interest method of amortizing bond discount.\nWhat value would Kimbrough report for the unamortized bond discount on December 31, 2017?", options: ["$255,000", "$258,050", "$274,500", "$285,500"], answer: 3 },
+                { id: 40, question: "On June 30, 2017, Prouty Co. had outstanding 9%, $5,000,000 face amount, 10-year bonds that pay interest semi-annually on June 30 and December 31. The unamortized balance in the bond discount account on June 30, 2017 was $200,000. On June 30, 2017, Prouty acquired all of these bonds at 101 and retired them.\nWhat amount of gain or loss would Prouty record on this early extinguishment of debt?", options: ["$250,000 gain", "$250,000 loss", "$505,000 gain", "$300,000 loss"], answer: 1 },
+                { id: 41, question: "How is the times interest earned ratio computed?", options: ["(Net income + income tax expense + interest expense) / interest expense", "Net income / interest expense", "Net income + interest expense/ interest expense", "Income before taxes / interest expense"], answer: 0 },
+                { id: 42, question: "A company issues $25,000,000, 7.8%, 20-year bonds to yield 8% on January 1, 2020. Interest is paid on June 30 and December 31. The proceeds from the bonds are $24,505,180.\nUsing effective-interest amortization, how much interest expense will be recognized in 2020?", options: ["$975,000", "$1,960,415", "$1,950,000", "$1,960,622"], answer: 3 },
+                { id: 43, question: "On January 1, 2021, Jacobs Company sold property to Dains Company which originally cost Jacobs $2,660,000. There was no established exchange price for this property. Danis gave Jacobs a $4,200,000 zero-interest-bearing note payable in three equal annual installments of $1,400,000 with the first payment due December 31, 2021. The note has no ready market. The prevailing rate of interest for a note of this type is 10%. The present value of a $4,200,000 note payable in three equal annual installments of $1,400,000 at a 10% rate of interest is $3,481,800.\nWhat is the amount of interest income that should be recognized by Jacobs in 2021, using the effective-interest method?", options: ["$14,000", "$140,000", "$348,180", "$420,000"], answer: 2 },
+                { id: 44, question: "A company has two pending lawsuits and is trying to determine if the losses should be recorded in the December 31, Year 1 financial statements. It was already determined that the outcomes will be unfavorable and can be reasonably estimated. Lawsuit A involved an event that occurred on November 28, Year 1, and Lawsuit B involved an event that occurred on January 3, Year 2 after the financial statement date, but before the issuance.\nWhich loss contingency should be recorded by this company in Year 1?", options: ["For Lawsuit A only", "For Lawsuit B only", "For both Lawsuit A and Lawsuit B", "For neither Lawsuit A or Lawsuit B"], answer: 0 },
+                { id: 45, question: "A Parent Company guaranteed a $700,000 mortgage for its Subsidiary Company, which is financially solvent.\nWhat is the proper accounting treatment for this situation?", options: ["Parent Company should not record a $700,000 liability on its balance sheet but should disclose in the notes to the financial statements the nature and amount of the guarantee and the amount it can recover from outside parties if it can be estimated.", "Parent Company should record a $700,000 liability on its balance sheet and disclose in the notes to the financial statements the nature and amount of the guarantee nor the amount it can recover from outside parties if it can be estimated.", "Parent Company should not record nor disclose in the notes to the financial statements the details regarding this guarantee.", "Parent Company should record a $700,000 liability on its balance sheet and disclose in the notes to the financial statements the nature and amount of the guarantee and the amount it can recover from outside parties if it can be estimated."], answer: 0 },
+                { id: 46, question: "A company originally sold 20-year bonds with a face value of $500,000 for a $20,000 discount. The bonds were held to maturity.\nHow much will the gain be on the maturity date?", options: ["$20,000", "$480,000", "$500,000", "$0"], answer: 3 },
+                { id: 47, question: "A company issues a $25,000 three-year note. The stated and effective interest rates are 2%.\nWhich journal entry should be used to record the annual interest expense at the end of the first year?", options: ["Debit Cash for $1,500; credit Interest Expense for $1,500", "Debit Cash for $500; credit Interest Expense for $500", "Debit Interest Expense for $500; credit Cash for $500", "Debit Interest Expense for $1,500; credit Cash for $1,500"], answer: 2 },
+                { id: 48, question: "A hardware retailer recently purchased $1,000,000 of lawn mowers from a local manufacturer with terms 2/10, n/30.\nHow should this transaction be reported on the balance sheet?", options: ["Accounts payable", "Returnable cash deposits", "Notes payable", "Unearned revenue"], answer: 0 },
+                { id: 49, question: "A company reports the following financial information:\nNet income: $110,000\nInterest expense: $47,000\nIncome tax expense: $22,000\nR&D expense: $38,000\nOperating income: $190,000\nWhat is the company's times interest earned?", options: ["4.62", "6.32", "5.51", "3.81"], answer: 3 },
+                { id: 50, question: "A company collected sales tax of $2,800 on sales of $35,000. The sales tax rate is 8.5%.\nWhich entry should be used to record the amount due to the taxing agency?", options: ["Debit Sales Revenue for $2,800; debit Loss on sales tax collection of $175; credit Cash of $2,975", "Debit Cash for $2,800; credit Sales Tax Revenue $2,800", "Debit Sales Revenue for $2,800; credit Cash for $2,800", "Debit Cash for $2,975; credit Sales Revenue for $2,800; credit Loss on sales tax collections $175"], answer: 0 },
+                { id: 51, question: "A company's most recent balance sheet depicts the following amounts:\nCurrent assets: $300,000\nLong-term assets: $400,000\nCurrent liabilities: $100,000\nLong-term liabilities: $200,000\nWhat is the company's debt-to-assets ratio, rounded to the nearest percent?", options: ["43%", "50%", "33%", "14%"], answer: 0 },
+                { id: 52, question: "A private airline company sold 110 tickets at $350 each on March 1 for a round-trip ticket to a sporting event occurring on February 1 of the following year.\nWhich entry should the company use to record the sale of the tickets?", options: ["Debit Cash for $38,500; credit Unearned Passenger Revenue for $38,500", "Debit Cash for $38,500; credit Passenger Revenue for $3,500; credit Unearned Passenger Revenue for $35,000", "Debit Passenger Revenue for $3,500; debit Unearned Passenger Revenue for $35,000; credit Cash for $38,500", "Debit Unearned Passenger Revenue for $38,500; credit Cash for $38,500"], answer: 0 },
+                { id: 53, question: "A company issues $500,000 of bonds at 98.\nHow should the premium or discount be recorded upon bond issuance?", options: ["Debit to Premium on Bonds Payable for $10,000", "Credit to Premium on Bonds Payable for $10,000", "Debit to Discount on Bonds Payable for $10,000", "Credit to Discount on Bonds Payable for $10,000"], answer: 2 },
+                { id: 54, question: "A company redeemed bonds before the maturity date with a reacquisition price that was less than the current net carrying value. The original bond issuance was recorded at 103.\nWhich account should be debited in the journal entry to record this transaction?", options: ["Loss on Redemption of Bonds", "Discount on Bonds Payable", "Gain on Redemption of Bonds", "Premium on Bonds Payable"], answer: 3 },
+                { id: 55, question: "A company does not segregate sales tax and the amount of sale at the time of sale. At quarter end, the company must record the sales tax. The Sales Revenue account shows a balance of $200,000, which includes 6% sales tax.\nWhich entry should be used to record the amount due to the taxing unit?", options: ["Debit Sales Tax Expense for $12,000; credit Sales Taxes Payable for $12,000", "Debit Sales Tax Expense for $11,321; credit Sales Taxes Payable for $11,321", "Debit Sales Revenue for $12,000; credit Sales Taxes Payable for $12,000", "Debit Sales Revenue for $11,321; credit Sales Taxes Payable for $11,321"], answer: 3 },
+                { id: 56, question: "A company purchases a factory and signs a 30-year mortgage with a face value of $500,000 and a fixed interest rate of 6.75% per year. The bank is requiring 4 points upon closing.\nHow much should be recorded in the Mortgages Payable account upon closing?", options: ["$520,000", "$480,000", "$500,000", "$533,750"], answer: 2 },
+                { id: 57, question: "A company borrows $20,000 by issuing a three-year note with a stated and effective rate of 5%.\nHow much will the company record in the Notes Payable account upon signing the note?", options: ["$22,000", "$21,000", "$20,000", "$23,000"], answer: 2 },
+                { id: 58, question: "A company reported the following accounts from its year-end balance sheet:\nCash: $50,000\nShort-term investments: $125,000\nAccounts receivable: $230,000\nInventory: $720,000\nProperty, plant, and equipment, net: $800,000\nInvestments: $95,000\nAccounts payable: $193,000\nAccrued liabilities: $29,000\nCurrent portion of long-term debt: $170,000\nLong-term debt: $715,000\nStockholder's equity: $963,000\nWhat is the company's quick ratio?", options: ["0.5", "1.0", "2.5", "2.9"], answer: 1 },
+                { id: 59, question: "A company issued a 5-year note payable in the amount of $15,000. The note bears the market interest rate of 5%. At Year 3, the market rate of interest is 3%.\nWhich journal entry is appropriate for recording interest at the end of the third year?", options: ["Debit Interest Expense for $450; credit Cash for $450", "Debit Interest Expense for $750; credit Discount on Note Payable for $300; credit Cash for $450", "Debit Interest Expense for $450; debit Premium on Note Payable for $300; credit Cash for $750", "Debit Interest Expense for $750; credit Cash for $750"], answer: 3 },
+                { id: 60, question: "A company reported the following accounts from its year-end balance sheet:\nCash: $50,000\nShort-term investments: $125,000\nAccounts receivable: $230,000\nInventory: $720,000\nProperty, plant, and equipment, net: $800,000\nInvestments: $95,000\nAccounts payable: $193,000\nAccrued liabilities: $29,000\nCurrent portion of long-term debt: $170,000\nLong-term debt: $715,000\nStockholder's equity: $963,000\nWhat is the company's debt-equity ratio?", options: ["0.5", "0.4", "1.1", "0.2"], answer: 2 },
+                { id: 61, question: "On May 1, a company took out a $60,000, 8%, five-year loan from a bank to purchase new equipment. Payments on the principal and interest are due January 1 of each year. Principal is to be repaid in five even installments.\nWhich entry should be used to record the note?", options: ["Debit Cash for $60,000, credit Current Maturities of Long-Term Debt for 12,000, credit Long-Term Debt of $48,000", "Debit Cash for $60,000, credit Current Maturities of Long-Term Debt for 8,000, credit Long-Term Debt of $52,000", "Debit Cash for $60,000, debit Interest Expense of $3,200, credit Current Maturities of Long-Term Debt for 8,000, credit Long-Term Debt of $52,000, credit Interest Payable of $3,200", "Debit Cash for $60,000, debit Interest Expense of $4,800, credit Current Maturities of Long-Term Debt for 12,000, credit Long-Term Debt of $48,000, credit Interest Payable of $4,800"], answer: 0 },
+                { id: 62, question: "A company reports the following financial information:\nCurrent assets: $300,000\nLong-term assets: $500,000\nCurrent liabilities: $300,000\nLong-term liabilities: $400,000\nStockholder's equity: $100,000\nWhat is the company's debt-to-asset ratio, rounded to the nearest percent?", options: ["50%", "100%", "88%", "78%"], answer: 2 },
+                { id: 63, question: "A company knows that certain loss contingencies should be recorded in an effort to be conservative.\nWhich type of loss contingencies must be recorded?", options: ["Risk of loss or damage by fire", "Expected premiums to be awarded to customers", "Risk of litigation loss that cannot be estimated", "Expected loss from general business risk"], answer: 1 }
+            ],
+            "Unit 6: Stockholders Equity": [
+                { id: 1, question: "In every corporation, what is the one class of stock that represents the basic ownership interest called?", options: ["Convertible stock", "Preferred stock", "Cumulative stock", "Common stock"], answer: 3 },
+                { id: 2, question: "Who does the residual interest in a corporation belong to?", options: ["The common stockholders", "The preferred stockholders", "The board of directors", "The management"], answer: 0 },
+                { id: 3, question: "Which type of preferred stock generates a dividend in arrears?", options: ["Convertible preferred stock", "Cumulative preferred stock", "Participating preferred stock", "Callable preferred stock"], answer: 1 },
+                { id: 4, question: "Duszynski Company issues 20,000 shares of its $.50 par value common stock having a market value of $25 per share and 6,000 shares of its $25 par value preferred stock having a market value of $50 per share for a lump sum of $750,000. What is the amount of the proceeds allocated to the common stock?", options: ["$450,000", "$500,000", "$468,750", "$531,250"], answer: 2 },
+                { id: 5, question: "On September 14, 2017, Gayot Company reacquired 12,000 shares of its $1 par value common stock for $40 per share. Gayot uses the cost method to account for treasury stock.\nWhat is the debit side of the journal entry to record the reacquisition of the stock?", options: ["Common Stock for $480,000", "Treasury Stock for $12,000", "Common Stock for $12,000", "Treasury Stock for $480,000"], answer: 3 },
+                { id: 6, question: "An analysis of stockholders' equity of Hahn Corporation as of January 1, 2021, is as follows:\nCommon stock, par value $20; authorized 100,000 shares; issued and outstanding 90,000 shares: $1,800,000\nPaid-in capital in excess of par: $900,000\nRetained earnings: $760,000\nTotal: $3,460,000\nHahn uses the cost method of accounting for treasury stock and during 2021 entered into the following transactions:\nAcquired 2,500 shares of its stock for $75,000.\nSold 2,000 treasury shares at $35 per share.\nSold the remaining treasury shares at $20 per share.\nAssuming no other equity transactions occurred during 2021, what should Hahn report on December 31, 2021, as total additional paid-in capital?", options: ["$895,000", "$900,000", "$905,000", "$915,000"], answer: 2 },
+                { id: 7, question: "When treasury stock is purchased for more than the par value of the stock and the cost method is used to account for treasury stock, what account(s) should be debited?", options: ["Treasury stock for the par value and paid-in capital in excess of par for the excess of the purchase price over the par value", "Treasury stock for the purchase price", "Treasury stock for the par value and retained earnings for the excess of the purchase price over the par value", "Paid-in capital in excess of par for the purchase price"], answer: 1 },
+                { id: 8, question: "Gains on sales of treasury stock (using the cost method) should be credited to which account?", options: ["Paid-in capital from treasury stock", "Other income", "Capital stock", "Income from operations"], answer: 0 },
+                { id: 9, question: "On October 31, 2017, Lexington Corp. declared and issued a 12% common stock dividend. Prior to this dividend, Lexington had 302,000 shares of $.001 par value common stock issued and outstanding. The fair value of Lexington's common stock was $16.75 per share on October 31, 2017.\nAs a result of this stock dividend, what happened to the company's total stockholders' equity?", options: ["It did not change.", "It decreased by $5,058,500.", "It increased by $302,000.", "It decreased by $5,058,198."], answer: 0 },
+                { id: 10, question: "On January 1, 2017, Vancleave Corporation had 110,000 shares of its $.001 par value common stock outstanding. On November 27, when the market price of the stock was $8, the corporation declared a 10% stock dividend to be issued to stockholders of record on December 28, 2017.\nWhat was the impact of the 10% stock dividend on the balance of the retained earnings account?", options: ["$11,000 decrease", "$88,000 decrease", "$80,000 decrease", "$77,000 decrease"], answer: 1 },
+                { id: 11, question: "Cash dividends are paid on the basis of which number of shares?", options: ["Outstanding", "Authorized", "Treasury shares", "Issued"], answer: 0 },
+                { id: 12, question: "Where should the balance in Common Stock Dividend Distributable be reported on the Balance Sheet?", options: ["Contra current asset", "Addition to capital stock", "Current liability", "Deduction from common stock issued"], answer: 1 },
+                { id: 13, question: "How is the rate of return on common stock equity computed?", options: ["Net income/ending common stockholders' equity", "Net income less preferred dividends/ending common stockholders' equity", "Net income less preferred dividends/average common stockholders' equity", "Net income/average common stockholders' equity"], answer: 2 },
+                { id: 14, question: "How is the payout ratio calculated?", options: ["Dividends per share/earnings per share", "Dividends per share/net income", "Cash dividends/market price per share", "Cash dividends/net income less preferred dividends"], answer: 3 },
+                { id: 15, question: "Layne Corporation had the following information in its financial statements for the years ended 2020 and 2021:\nCash dividends for the year 2021: $10,000\nNet income for the year ended 2021: $93,000\nMarket price of stock, 12/31/20: $10\nMarket price of stock, 12/31/21 $12\nCommon stockholders’ equity, 12/31/20: $1,600,000\nCommon stockholders’ equity, 12/31/21: $1,980,000\nOutstanding shares, 12/31/21: 160,000\nPreferred dividends for the year ended 2021: $15,000\nWhat is the payout ratio for Layne Corporation for the year ended 2021?", options: ["0.161", "0.128", "0.181", "0.108"], answer: 1 },
+                { id: 16, question: "Layne Corporation had the following information in its financial statements for the years ended 2020 and 2021:\nCash dividends for the year 2021: $10,000\nNet income for the year ended 2021: $93,000\nMarket price of stock, 12/31/20: $10\nMarket price of stock, 12/31/21 $12\nCommon stockholders’ equity, 12/31/20: $1,600,000\nCommon stockholders’ equity, 12/31/21: $1,980,000\nOutstanding shares, 12/31/21: 160,000\nPreferred dividends for the year ended 2021: $15,000\nWhat is the book value per share for Layne Corporation for the year ended 2021?", options: ["$10.00", "$12.22", "$12.28", "$12.38"], answer: 3 },
+                { id: 17, question: "Durango Inc. had net income for 2017 of $2,120,000 and earnings per share on common stock of $5. Included in the net income was $300,000 of bond interest expense related to its long-term debt. The income tax rate for 2017 was 30%. Dividends on preferred stock were $400,000. The payout ratio on common stock was 25%. What were the dividends for common stock in 2017?", options: ["$430,000", "$645,000", "$530,000", "$516,000"], answer: 0 },
+                { id: 18, question: "At the date of declaration of a large common stock dividend, what should the entry include?", options: ["A credit to Common Stock Dividend Payable", "A credit to Cash", "A credit to Paid-in Capital in Excess of Par", "A debit to Retained Earnings"], answer: 3 },
+                { id: 19, question: "Common stockholders of a business enterprise are said to be the residual owners. What does the term residual owner mean?", options: ["The stockholders have the rights to specific assets of the business.", "The stockholders can negotiate individual contracts on behalf of the enterprise.", "Common stockholders bear the ultimate risks and uncertainties and receive the benefits of enterprise ownership.", "The stockholders are entitled to a dividend every year in which the business earns a profit."], answer: 2 },
+                { id: 20, question: "Long Co. issued 100,000 shares of $10 par common stock for $1,200,000. A year later Long acquired 16,000 shares of its own common stock at $15 per share. Three months later Long sold 8,000 of these shares at $19 per share.\nIf the cost method is used to record treasury stock transactions, what is the credit side of the journal entry to record the sale of the 8,000 treasury shares?", options: ["Treasury Stock for $152,000", "Treasury Stock for $80,000 and Paid-in Capital from Treasury Stock for $72,000", "Treasury Stock for $120,000 and Paid-in Capital from Treasury Stock for $32,000", "Treasury Stock for $120,000 and Paid-in Capital in Excess of Par for $32,000"], answer: 2 },
+                { id: 21, question: "Sealy Corporation had the following information in its financial statements for the years ended 2020 and 2021:\nCash dividends for the year 2021: $5,000\nNet income for the year ended 2021: $97,000\nMarket price of stock, 12/31/20: $10\nMarket price of stock, 12/31/21: $12\nCommon stockholders’ equity, 12/31/20: $1,000,000\nCommon stockholders’ equity, 12/31/21: $1,200,000\nOutstanding shares, 12/31/21: 100,000\nPreferred dividends for the year ended 2021: $15,000\nWhat is the rate of return on common stock equity for Sealy Corporation for the year ended 2021?", options: ["0.075", "0.068", "0.065", "0.088"], answer: 0 },
+                { id: 22, question: "What are convertible bonds usually converted into?", options: ["Preferred stock", "Common stock", "Lower interest rate bonds", "Stock warrants"], answer: 1 },
+                { id: 23, question: "When a bond issuer offers some form of additional consideration (a “sweetener”) to induce conversion, how is the sweetener accounted for?", options: ["Extraordinary item", "Expense", "Common stock share", "Loss"], answer: 1 },
+                { id: 24, question: "During the conversion of preferred stock into common, how should any excess of the par value of the common shares issued over the carrying amount of the preferred being converted be treated?", options: ["It should be reflected currently in income, but not as an extraordinary item", "It should be reflected currently in income as an extraordinary item", "It should be treated as a direct reduction of retained earnings", "It should be treated as a prior period adjustment"], answer: 2 },
+                { id: 25, question: "In 2016, Newton Inc. issued for $105 per share, 100,000 shares of $100 par value convertible preferred stock. One share of preferred stock can be converted into three shares of Newton's $30 par value common stock at the option of the preferred stockholder. In August 2017, all of the preferred stock was converted into common stock. The market value of the common stock at the date of the conversion was $42 per share.\nWhat total amount should be credited to additional paid-in capital, common stock as a result of the conversion of the preferred stock into common stock?", options: ["$780,000", "$1,500,000", "$375,000", "$1,250,000"], answer: 1 },
+                { id: 26, question: "Lake Norman Corporation offered detachable 5-year warrants to buy one share of common stock (par value $5) at $20 (at a time when the stock was selling for $32). The price paid for 200, $1,000 bonds with the warrants attached was $205,000. The market price of the Lake Norman bonds without the warrants was $180,000, and the market price of the warrants without the bonds was $20,000. What amount should be allocated to the warrants?", options: ["$20,000", "$20,500", "$24,000", "$24,600"], answer: 1 },
+                { id: 27, question: "On what should the allocation of proceeds from the sale of debt with detachable stock warrants be based?", options: ["Face value of the bonds", "Aggregate fair market value of the bonds and the warrants", "Fair market value of the bonds", "Face value of the bonds and market value of the warrants"], answer: 1 },
+                { id: 28, question: "When the cash proceeds from a bond issued with detachable stock warrants exceed the sum of the par value of the bonds and the fair value of the warrants, to which account should the excess be credited?", options: ["Additional paid-in capital from stock warrants", "Retained earnings", "Premium on bonds payable", "A liability account"], answer: 2 },
+                { id: 29, question: "What is the major difference between convertible debt and stock warrants upon exercise of the instrument?", options: ["The stock involved is restricted and can only be sold by the recipient after a set period of time", "The holder has to pay a certain amount of cash to obtain the shares", "No paid-in capital in excess of par can be a part of the transaction", "The stock is held by the company for a defined period of time before they are issued to the warrant holder."], answer: 1 },
+                { id: 30, question: "When is the compensation expense resulting from a compensatory stock option plan generally reported?", options: ["When it is recognized in the period of exercise", "When it is recognized in the period of the grant", "When it is allocated over the periods of the employee's service life to retirement", "When it is allocated to the periods benefited by the employee's required service"], answer: 3 },
+                { id: 31, question: "What is an advantage of a restricted-stock plan?", options: ["It increases the market price of the stock.", "It never becomes completely worthless.", "It increases the profit of a company.", "It creates new job opportunities in a company."], answer: 1 },
+                { id: 32, question: "On January 1, 2021 Reese Company granted Jack Buchanan, an employee, an option to buy 300 shares of Reese Co. stock for $40 per share, the option exercisable for 5 years from date of grant. Using a fair value option pricing model, total compensation expense is determined to be $4,800. Buchanan exercised his option on September 1, 2021, and sold his 300 shares on December 1, 2021. Quoted market prices of Reese Co. stock during 2021 were: January 1 $40 per share September 1 $48 per share December 1 $54 per share The service period is for two years beginning January 1, 2021.\nAs a result of the option granted to Buchanan, using the fair value method, what value should Reese recognize as compensation expense for 2021?", options: ["$1,200", "$4,800", "$2,400", "$5,600"], answer: 2 },
+                { id: 33, question: "What is the numerator of the Earnings per Share of Common Stock calculation?", options: ["Net Income - Preferred Dividends", "Net Income", "Net Income + Interest Expense", "Net Income + Preferred Dividends"], answer: 0 },
+                { id: 34, question: "At December 31, 2017, Twin Rivers Company had 450,000 shares of common stock issued and outstanding, 350,000 of which had been issued and outstanding throughout the year and 100,000 of which were issued on September 1, 2017. Net income for the year ended December 31, 2017, was $1,160,000.\nWhat should be Twin Rivers' 2017 earnings per common share, rounded to the nearest penny?", options: ["$3.02", "$3.32", "$2.58", "$2.73"], answer: 0 },
+                { id: 35, question: "Pesca Company had 820,000 shares of common stock outstanding on January 1, issued 360,000 shares on April 1 and purchased 24,000 shares of treasury stock on December 1.\nWhat is the weighted average shares outstanding for the year?", options: ["1,156,000 shares", "1,178,000 shares", "1,088,000 shares", "888,000 shares"], answer: 2 },
+                { id: 36, question: "With respect to the computation of earnings per share, what would be indicative of a simple capital structure?", options: ["Ownership interest consisting solely of common stock", "Earnings derived from one primary line of business", "Common stock, preferred stock, and convertible securities", "Common stock, preferred stock, and convertible bonds with detachable warrants"], answer: 0 },
+                { id: 37, question: "What effect will the acquisition of treasury stock have on stockholders' equity and earnings per share, respectively?", options: ["Increase in stockholder's equity and no effect on earnings per share", "Increase in stockholder's equity and decrease in earnings per share", "Decrease in stockholder's equity and no effect on earnings per share", "Decrease in stockholder's equity and increase in earnings per share"], answer: 3 },
+                { id: 38, question: "Of what will the numerator of the diluted EPS calculation consist when convertible preferred stock is being included?", options: ["Net income + Preferred dividends", "Net income + Preferred dividends (Net of tax effect)", "Net income", "Net income – Preferred dividends"], answer: 2 },
+                { id: 39, question: "Which earnings per share amounts are reported in a complex capital structure?", options: ["Basic EPS only", "Basic and simple EPS", "Diluted EPS only", "Basic and diluted EPS"], answer: 3 },
+                { id: 40, question: "The treasury stock method of computing incremental shares applies to which dilutive securities?", options: ["Convertible preferred stock only", "Stock options and warrants", "All convertible securities", "Convertible bonds only"], answer: 1 },
+                { id: 41, question: "How should antidilutive securities be treated in presenting the earnings per share information?", options: ["They should be ignored in all earnings per share calculations", "They are those whose inclusion in earnings per share computations would cause basic earnings per share to exceed diluted earnings per share", "They include stock options and warrants whose exercise price is less than the average market price of common stock", "They should be included in the computation of diluted earnings per share but not basic earnings per share."], answer: 0 },
+                { id: 42, question: "In 2019, Chartres Inc., issued for $105 per share, 60,000 shares of $100 par value convertible preferred stock. One share of preferred stock can be converted into three shares of Chartre's $25 par value common stock at the option of the preferred stockholder. In April 2020, all of the preferred stock was converted into common stock. The market value of the common stock at the date of the conversion was $30 per share.\nWhat total amount should be credited to additional paid-in capital from common stock as a result of the conversion of the preferred stock into common stock?", options: ["$60,000", "$1,800,000", "$900,000", "$2,300,000"], answer: 1 },
+                { id: 43, question: "Milo Co. had 800,000 shares of common stock outstanding on January 1, issued 126,000 shares on May 1, purchased 63,000 shares of treasury stock on September 1, and issued 54,000 shares on November 1.\nWhat is Milo's weighted average shares outstanding for the year?", options: ["872,000", "914,000", "851,000", "893,000"], answer: 0 },
+                { id: 44, question: "On March 1, 2021, Ruiz Corporation issued $2,000,000 of 8% nonconvertible bonds at 104, which are due on February 28, 2041. In addition, each $1,000 bond was issued with 25 detachable stock warrants, each of which entitled the bondholder to purchase for $50 one share of Ruiz common stock, par value $25. The bonds without the warrants would normally sell at 95. On March 1, 2021, the fair value of Ruiz’s common stock was $40 per share and the fair value of the warrants was $2.00.\nWhat amount should Ruiz record on March 1, 2021 as paid-in capital from stock warrants?", options: ["$104,000", "$100,000", "$85,200", "$73,600"], answer: 0 },
+                { id: 45, question: "On June 30, 2021, Yang Corporation granted compensatory stock options for 25,000 shares of its $24 par value common stock to certain of its key employees. The market price of the common stock on that date was $31 per share and the option price was $28. Using a fair value option pricing model, total compensation expense is determined to be $100,000. The options are exercisable beginning January 1, 2023, providing those key employees are still in the employ of the company at the time the options are exercised. The options expire on June 30, 2024. On January 4, 2023, when the market price of the stock was $36 per share, all options for the 25,000 shares were exercised. The service period is for two years beginning January 1, 2021.\nUsing the fair value method, what should be the amount of compensation expense recorded by Yang Corporation for these options on December 31, 2021?", options: ["$25,000", "$50,000", "$23,438", "$100,000"], answer: 1 },
+                { id: 46, question: "At December 31, 2021, Hancock Company had 500,000 shares of common stock issued and outstanding, 400,000 of which had been issued and outstanding throughout the year and 100,000 of which were issued on October 1, 2021. Net income for the year ended December 31, 2021, was $1,700,000.\nWhat should be Hancock's 2021 earnings per common share, rounded to the nearest penny?", options: ["4.70", "3.78", "4.00", "4.25"], answer: 2 },
+                { id: 47, question: "A company is buying a patent in exchange for 1,000 shares of common stock in the company at $5 a share. The fair market value of the stock is $10, and the market value of the patent is unknown.\nWhich journal entry should the company use to account for the purchase of the patent?", options: ["Debit Common Stock for $5,000; Debit Paid-in Capital for $5,000; Credit Patents for $10,000", "Debit Patents for $10,000: Debit Paid-in Capital for $5,000; Credit Common Stock for $15,000", "Debit Common Stock for $10,000; Credit Patents for $5,000; Credit Paid-in Capital for $5,000", "Debit Patents for $10,000; Credit Common Stock for $5,000; Credit Paid-in Capital for $5,000"], answer: 3 },
+                { id: 48, question: "A company issues 15,000 shares of $1 par value common stock in exchange for a trademark with a fair market value of $20,000. Additionally, the company paid underwriting costs of $5,000.\nWhich journal entry should be used to record this common stock issuance?", options: ["Debit Trademark for $20,000; Debit Paid-in Capital in Excess of Par-Common Stock for $5,000; Credit Common Stock for $20,000; Credit Cash for $5,000", "Debit Trademark for $20,000; Credit Common Stock for $15,000; Credit Paid-in Capital in Excess of Par-Common Stock for $5,000", "Debit Trademark for $15,000; Debit Paid-in Capital in Excess of Par-Common Stock for $5,000; Credit Common Stock for $15,000; Credit Cash for $5,000", "Debit Trademark for $20,000; Credit Common Stock for $15,000; Credit Cash for $5,000"], answer: 3 },
+                { id: 49, question: "A corporation receives a lump sum of $1,010.25 for a $1,000 par value bond with one warrant attached. The warrant is to purchase one share of common stock for $30 within the next five years when the stock is trading at $60. The warrant can be traded separately from the bond. The bond’s market price cannot be determined, but the market price for the warrant is $30.90.\nHow much of the bond sale proceeds is allocated to the bonds using the incremental method?", options: ["$1,010.25", "$979.35", "$980.25", "$1,030.90"], answer: 1 },
+                { id: 50, question: "A company currently has stock warrants outstanding. The company needs to determine when these warrants impact its earnings per share.\nWhen should they be included in the calculation?", options: ["When the warrants have an antidilutive effect on earnings per share", "When the warrants have a dilutive effect on earnings per share", "When the warrants will expire within the current period", "When the warrants are exercisable"], answer: 1 },
+                { id: 51, question: "A company reports net income of $1,000,000 for the year. Shares outstanding during the first three months of the year equal 500,000, and shares outstanding during the final nine months of the year equal 1,000,000. There are $100,000 of preferred dividends.\nWhat is the earnings per share?", options: ["$0.90", "$1.14", "$1.80", "$1.03"], answer: 3 },
+                { id: 52, question: "A company has a complex capital structure regarding dilutive securities currently outstanding. The company is making a financial statement disclosure regarding their common stock and may include a note in their financial statements.\nWhich note must be included, if any?", options: ["A description of the rights assigned to the diluted securities", "Dilutive securities that will not become antidilutive in the future", "Individual owners and quantities of the dilutive securities", "No disclosure required regarding dilutive securities"], answer: 0 },
+                { id: 53, question: "A company announces a $500,000 dividend payable to common stockholders. The cash dividend announcements noted that stockholders should consider $400,000 of the dividend as income and the remainder as a return of capital.\nWhich journal entry should be used to record this dividend?", options: ["Debit Retained Earnings for $500,000; Credit Dividends Payable for $500,000", "Debit Retained Earnings for $400,000; Credit Dividends Payable for $400,000", "Debit Retained Earnings for $400,000; Debit Paid-in Capital in Excess of Par - Common Stock for $100,000; Credit Dividends Payable for $500,000", "Debit Retained Earnings for $500,000; Credit Paid-in Capital in Excess of Par - Common Stock for $100,000; Credit Dividends Payable for $400,000"], answer: 2 },
+                { id: 54, question: "A company allows all full-time employees--but no part-time employees--to participate in its employee stock purchase plan. The employees have the option to purchase common stock discounted by 25%, and the plan offers no substantive option feature.\nWhat is one of the three required features that causes the plan to be considered compensatory?", options: ["The company only includes common stock as part of the plan.", "The stock is discounted by 25%.", "There is no substantive option feature.", "Part-time employees are excluded from the stock option plan."], answer: 1 },
+                { id: 55, question: "A company has issued bonds with a total face value of $5,000,000 with a detachable warrant. The fair value of the bonds without the warrants was $4,800,000, and the fair value of the warrants amounted to $100,000.\nWhich amount should be debited to Discount on Bonds Payable using the proportional method?", options: ["$102,041", "$200,000", "$100,000", "$4,897,959"], answer: 0 },
+                { id: 56, question: "A bookkeeper is reviewing transactions for a company that acquired 12,000 shares of its $1 par value common stock at $10 per share using the cost method. The shares were originally issued at $1 over par value.\nThe first sale of the treasury stock was for 1,000 shares at $10, the second sale was for 5,000 shares at $2 above cost, and the third sale was for 5,000 shares at $4 below cost. The company retired the remaining 1,000 shares of treasury stock on the last day of the year.\nWhich transaction includes a debit to Paid-on Capital from Treasury stock for $10,000?", options: ["Second sale of 5,000 shares", "Third sale of 5,000 shares", "The retirement of 1,000 shares", "First sale of 1,000 shares"], answer: 1 },
+                { id: 57, question: "A company grants 10,000 stock options to an executive on January 1 of Year 1 when the market price of the option is $30 and the exercise price is $20 for $1 par stock. The company believes the stock option will be exercised in two years and that the compensation is valued at $220,000. The options are valid for five years, and the executive continues to work for the company, but the options expire on December 31 of Year 5 without exercise.\nWhich entry should the company record on December 31 of Year 5?", options: ["Debit Paid-in Capital - Stock Options for $220,000; Credit Compensation Expense for $220,000", "Debit Paid-in Capital - Expired Stock Options for $220,000; Credit Common Stock for $10,000; Credit Paid-in Capital in Excess of Par - Common Stock for $210,000", "Debit Paid-in Capital - Expired Stock Options for $220,000; Credit Common Stock for $100,000; Credit Paid-in Capital in Excess of Par - Common Stock for $120,000", "Debit Paid-in Capital - Stock Options for $220,000; Credit Paid-in Capital - Expired Stock Options for $220,000"], answer: 3 },
+                { id: 58, question: "A corporation currently has 4% convertible preferred stock outstanding.\nWhich computation should be used to determine the diluted earnings per share?", options: ["Subtract the number of common stock shares exercisable from the preferred stock from the number of outstanding common stock shares", "Add the number of common stock shares exercisable from the preferred stock to the number of outstanding common stock shares", "Add the annual preferred dividends to net income", "Subtract the annual preferred dividends from net income"], answer: 1 },
+                { id: 59, question: "A company exchanges 10,000 shares of stock for land, which has been advertised for sale at a price of $180,000. At the time of the transaction, the company's $5 par shares are actively traded for $15 per share.\nWhat is the journal entry for this transaction?", options: ["Debit Land for $180,000; Credit Common Stock for $50,000; Credit Paid-in Capital in Excess of Par $130,000", "Debit Land for $150,000; Credit Common Stock for $150,000", "Debit Land for $180,000; Credit Common Stock for $180,000", "Debit Land for $150,000; Credit Common Stock for $50,000; Credit Paid-in Capital in Excess of Par $100,000"], answer: 3 },
+                { id: 60, question: "A company’s board of directors declares a $0.75 per share cash dividend. The company has 375,000 shares of common stock issued and 50,000 shares of treasury stock on the date of record.\nWhat is the journal entry to record this event?", options: ["Debit Retained Earnings for $243,750; Credit Dividends Payable for $243,750", "Debit Retained Earnings for $281,250; Credit Dividends Payable for $281,250", "Debit Dividend Expense for $281,250; Credit Dividends Payable for $281,250", "Debit Common Stock for $243,750; Credit Dividends Payable for $243,750"], answer: 0 },
+                { id: 61, question: "A company is preparing an expansion and wants to improve its return on equity to be more attractive to investors.\nHow could this be accomplished?", options: ["Issue a stock split", "Issue additional shares of stock", "Increase net income", "Increase preferred dividends"], answer: 2 },
+                { id: 62, question: "A company reports net income of $1,000,000. Dividends paid to preferred shareholders are $100,000. Shares outstanding at the beginning of the calendar year equal 700,000. The company purchased 200,000 treasury shares on October 1.\nWhich amount is the earnings per share?", options: ["$1.29", "$1.80", "$1.38", "$1.54"], answer: 2 },
+                { id: 63, question: "A company has a net income of $100,000; cash dividends to common stockholders of $7,500; and cash dividends to preferred shareholders of $2,500.\nWhich value is the company’s payout ratio?", options: ["2.5%", "10.0%", "7.7%", "5.0%"], answer: 2 },
+                { id: 64, question: "A company issues 1,000 shares of $1 par value common stock upon conversion of 1,000 shares of $5 par value preferred stock that was originally issued for a $150 premium.\nHow much should be credited to the common stock account?", options: ["$850", "$1,150", "$5,000", "$1,000"], answer: 3 },
+                { id: 65, question: "A company reported the following information in its financial statements:\nNet income: $70,000\nPreferred dividends: $10,000\nCommon stockholders' equity: $200,000\nCommon shares outstanding: 50,000\nWhat is the book value per share?", options: ["$1.40", "$1.20", "$3.80", "$4.00"], answer: 3 },
+                { id: 66, question: "A company declares a cash dividend on May 1, the date of record is May 15, and the date of payment is June 11. The dividend is $3.00 per share. The company only has common stock, and there are 10,000 shares authorized, 8,000 shares issued, and 5,000 shares outstanding.\nWhich account should be debited on June 11?", options: ["Dividends payable for $15,000", "Retained earnings for $24,000", "Retained earnings for $15,000", "Dividends payable for $24,000"], answer: 0 },
+                { id: 67, question: "What should the earnings per share data be reported for?", options: ["Net income and discontinued operations", "Net income and gross profit", "Operating income and net income", "Discontinued operations and comprehensive income"], answer: 0 },
+                { id: 68, question: "Which of the following is true for a company that has a simple capital structure?", options: ["It reports only basic earnings per share.", "It reports both basic and diluted earnings per share.", "It reports basic, diluted, and extraordinary earnings per share.", "It reports only diluted earnings per share."], answer: 0 },
+                { id: 69, question: "A company has a simple capital structure and net income of $550,000. It had 100,000 shares of common stock outstanding for the entire year and 10,000 shares of 6% preferred stock ($100 par) outstanding for the entire year. No dividends were declared during the year.\nWhat is the basic earnings per share?", options: ["$5.50", "$4.90", "$6.10", "$5.44"], answer: 1 },
+                { id: 70, question: "In the context of diluted earnings per share, when are stock options and warrants considered dilutive?", options: ["When the exercise price is lower than the average market price of the stock", "When the exercise price is higher than the average market price of the stock", "Always", "Never"], answer: 0 },
+                { id: 71, question: "Under the treasury stock method, if a company has 10,000 warrants outstanding with an exercise price of $20 and the average market price is $25, how many incremental shares are added to the denominator for diluted EPS?", options: ["10,000", "8,000", "2,000", "2,500"], answer: 2 },
+                { id: 72, question: "When using the if-converted method for convertible bonds, what is the adjustment to the numerator of the EPS calculation?", options: ["Add back the interest expense, net of tax", "Subtract the interest expense, net of tax", "Add back the full interest expense", "Subtract the preferred dividends"], answer: 0 },
+                { id: 73, question: "If a security's inclusion in the EPS calculation would increase the EPS (or decrease the loss per share), how is it classified?", options: ["Dilutive", "Antidilutive", "Simple", "Residual"], answer: 1 },
+                { id: 74, question: "A company has net income of $200,000 and 50,000 shares of common stock outstanding. It also has 5,000 shares of $100 par, 5% convertible preferred stock, each share convertible into 2 shares of common stock. No preferred dividends were declared.\nWhat is the diluted EPS?", options: ["$4.00", "$3.50", "$3.33", "$3.00"], answer: 2 },
+                { id: 75, question: "Which of the following is required to be disclosed for each period for which an income statement is presented?", options: ["The number of shares issued during the period", "A reconciliation of the numerators and denominators of the basic and diluted EPS computations", "The names of stockholders holding more than 5% of shares", "The market price of the stock at the end of each day"], answer: 1 },
+                { id: 76, question: "A company has a net loss of $100,000 and 10,000 shares of common stock outstanding. It also has stock options for 2,000 shares with an exercise price of $10. The average market price is $15.\nShould the options be included in the diluted EPS calculation?", options: ["Yes, because they are in the money.", "No, because the company has a net loss, making the options antidilutive.", "Yes, always include options.", "No, because the exercise price is too high."], answer: 1 },
+                { id: 77, question: "What does the 'residual' nature of common stock mean in the event of liquidation?", options: ["Common stockholders are paid first.", "Common stockholders are paid after creditors and preferred stockholders.", "Common stockholders are never paid.", "Common stockholders have no rights to assets."], answer: 1 },
+                { id: 78, question: "A company issues 1,000 shares of $10 par common stock for $15,000. How should the transaction be recorded?", options: ["Debit Cash $15,000; Credit Common Stock $15,000", "Debit Cash $15,000; Credit Common Stock $10,000; Credit Paid-in Capital in Excess of Par $5,000", "Debit Common Stock $15,000; Credit Cash $15,000", "Debit Cash $10,000; Credit Common Stock $10,000"], answer: 1 },
+                { id: 79, question: "A company reacquires 500 shares of its $5 par value common stock for $25 per share. Using the cost method, what is the journal entry?", options: ["Debit Common Stock $2,500; Credit Cash $2,500", "Debit Treasury Stock $12,500; Credit Cash $12,500", "Debit Treasury Stock $2,500; Credit Cash $2,500", "Debit Retained Earnings $12,500; Credit Cash $12,500"], answer: 1 },
+                { id: 80, question: "If treasury stock is sold for less than its cost, and the 'Paid-in Capital from Treasury Stock' account has a zero balance, which account is debited for the difference?", options: ["Paid-in Capital in Excess of Par", "Retained Earnings", "Loss on Sale of Stock", "Miscellaneous Expense"], answer: 1 },
+                { id: 81, question: "What is the primary effect of a 2-for-1 stock split on total stockholders' equity?", options: ["It doubles total equity.", "It reduces total equity by half.", "There is no effect on total equity.", "It increases retained earnings."], answer: 2 },
+                { id: 82, question: "A company declares a 5% stock dividend on 100,000 shares of $10 par stock when the market price is $30. What amount is transferred from retained earnings?", options: ["$50,000", "$150,000", "$100,000", "$300,000"], answer: 1 },
+                { id: 83, question: "A 'liquidating dividend' is a dividend that is:", options: ["Paid in cash.", "Paid in stock.", "A return of the stockholders' investment rather than a distribution of profits.", "A dividend that must be paid within 30 days."], answer: 2 },
+                { id: 84, question: "How does the declaration of a cash dividend affect the accounting equation?", options: ["Increase assets and increase liabilities", "Decrease assets and decrease equity", "Increase liabilities and decrease equity", "Decrease assets and increase liabilities"], answer: 2 },
+                { id: 85, question: "A company has 10,000 shares of 6% preferred stock, $100 par, cumulative. Dividends were not paid in the previous two years. If the company wants to pay a dividend to common stockholders this year, what is the minimum total preferred dividend that must be paid?", options: ["$60,000", "$120,000", "$180,000", "$0"], answer: 2 },
+                { id: 86, question: "Which of the following is a component of 'Other Comprehensive Income'?", options: ["Net Income", "Treasury Stock", "Unrealized gains on available-for-sale available-for-sale debt securities", "Retained Earnings"], answer: 2 },
+                { id: 87, question: "What is the formula for Book Value Per Share when only common stock is outstanding?", options: ["Total Equity / Authorized Shares", "Total Equity / Issued Shares", "Total Equity / Outstanding Shares", "Net Income / Outstanding Shares"], answer: 2 },
+                { id: 88, question: "A company has Total Equity of $1,000,000, which includes $200,000 of preferred stock. There are 80,000 shares of common stock outstanding.\nWhat is the book value per share of common stock?", options: ["$12.50", "$10.00", "$8.00", "$15.00"], answer: 1 },
+                { id: 89, question: "The 'date of record' for a dividend is the date on which:", options: ["The board of directors formally authorizes the dividend.", "The dividend is actually paid to stockholders.", "The company determines who is eligible to receive the dividend.", "The entry to record the dividend liability is made."], answer: 2 },
+                { id: 90, question: "A stock split:", options: ["Requires a journal entry to the common stock account.", "Changes the par value of the stock.", "Increases the total par value of all shares outstanding.", "Decreases the number of shares outstanding."], answer: 1 },
+                { id: 91, question: "Convertible preferred stock is usually converted at the option of the:", options: ["Company", "Stockholder", "Board of Directors", "SEC"], answer: 1 },
+                { id: 92, question: "A company issues 1,000 shares of $5 par value common stock in exchange for a piece of equipment. The stock is currently trading at $12 per share. The fair value of the equipment is not easily determinable.\nAt what amount should the equipment be recorded?", options: ["$5,000", "$12,000", "$17,000", "$7,000"], answer: 1 },
+                { id: 93, question: "Earnings per share (EPS) must be disclosed on the face of the:", options: ["Balance Sheet", "Income Statement", "Statement of Cash Flows", "Statement of Retained Earnings"], answer: 1 },
+                { id: 94, question: "Stock warrants are:", options: ["Rights to purchase shares at a fixed price.", "Dividends paid in stock.", "Options to sell stock back to the company.", "The same as treasury stock."], answer: 0 },
+                { id: 95, question: "When a company issues a small stock dividend (less than 20-25%), the Retained Earnings account is debited for the:", options: ["Par value of the shares.", "Market value of the shares.", "Liquidation value of the shares.", "Cost of the shares."], answer: 1 },
+                { id: 96, question: "Which of the following is true about common stock?", options: ["It is the basic ownership interest in a corporation.", "It has a fixed dividend rate.", "Common stockholders are always paid before preferred stockholders.", "Common stock has no voting rights."], answer: 0 },
+                { id: 97, question: "Treasury stock is reported as:", options: ["An asset.", "A liability.", "A reduction of stockholders' equity.", "An expense on the income statement."], answer: 2 }
+            ]
+        };
+
+        function App() {
+            const [view, setView] = useState('menu'); // 'menu' | 'quiz' | 'results' | 'resume-prompt'
+            const [activeModuleName, setActiveModuleName] = useState('');
+            const [questions, setQuestions] = useState([]);
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [selectedOptions, setSelectedOptions] = useState([]);
+            const [isAnswered, setIsAnswered] = useState(false);
+            const [savedState, setSavedState] = useState(null);
+
+            // --- LOCAL STORAGE HELPERS ---
+            const getStorageKey = (name) => `accounting_quiz_progress_${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+            const saveProgressToLocal = (moduleName, data) => {
+                localStorage.setItem(getStorageKey(moduleName), JSON.stringify(data));
+            };
+
+            const loadProgressFromLocal = (moduleName) => {
+                const saved = localStorage.getItem(getStorageKey(moduleName));
+                return saved ? JSON.parse(saved) : null;
+            };
+
+            const clearProgressFromLocal = (moduleName) => {
+                localStorage.removeItem(getStorageKey(moduleName));
+            };
+
+            // Auto-Save Effect
+            useEffect(() => {
+                if (view === 'quiz' && questions.length > 0) {
+                    saveProgressToLocal(activeModuleName, {
+                        questions,
+                        currentQuestion,
+                        selectedOptions,
+                        isComplete: false
+                    });
+                }
+            }, [currentQuestion, selectedOptions, view, activeModuleName, questions]);
+
+            const startModule = (moduleName) => {
+                const saved = loadProgressFromLocal(moduleName);
+                if (saved && !saved.isComplete) {
+                    setSavedState(saved);
+                    setActiveModuleName(moduleName);
+                    setView('resume-prompt');
+                } else {
+                    initNewModule(moduleName);
+                }
+            };
+
+            const initNewModule = (moduleName) => {
+                const rawData = QUIZ_DATA[moduleName];
+                if (!rawData || rawData.length === 0) return;
+                
+                const preparedData = prepareQuizData(rawData);
+                setQuestions(preparedData);
+                setSelectedOptions(new Array(preparedData.length).fill(null));
+                setActiveModuleName(moduleName);
+                setCurrentQuestion(0);
+                setIsAnswered(false);
+                setView('quiz');
+            };
+
+            const resumeModule = () => {
+                if (!savedState) return;
+                setQuestions(savedState.questions);
+                setSelectedOptions(savedState.selectedOptions);
+                setCurrentQuestion(savedState.currentQuestion);
+                setIsAnswered(savedState.selectedOptions[savedState.currentQuestion] !== null);
+                setView('quiz');
+            };
+
+            const handleOptionSelect = (index) => {
+                if (isAnswered) return;
+                const newSelected = [...selectedOptions];
+                newSelected[currentQuestion] = index;
+                setSelectedOptions(newSelected);
+                setIsAnswered(true);
+            };
+
+            const nextQuestion = () => {
+                if (currentQuestion < questions.length - 1) {
+                    setCurrentQuestion(currentQuestion + 1);
+                    setIsAnswered(selectedOptions[currentQuestion + 1] !== null);
+                } else {
+                    clearProgressFromLocal(activeModuleName);
+                    setView('results');
+                }
+            };
+
+            const prevQuestion = () => {
+                if (currentQuestion > 0) {
+                    setCurrentQuestion(currentQuestion - 1);
+                    setIsAnswered(true);
+                }
+            };
+
+            const calculateScore = () => {
+                return selectedOptions.reduce((acc, selected, index) => {
+                    return selected === questions[index].answer ? acc + 1 : acc;
+                }, 0);
+            };
+
+            const goToMenu = () => {
+                setView('menu');
+            };
+
+            if (view === 'resume-prompt') {
+                return (
+                    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-slate-100 animate-fade-in text-left">
+                            <div className="bg-indigo-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner text-indigo-600">
+                                <Icon name="Save" size={40} />
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight text-center">Session Detected</h2>
+                            <p className="text-slate-500 mb-10 leading-relaxed font-medium text-center">Continue your current session for <span className="text-indigo-600 font-bold">{activeModuleName}</span>?</p>
+                            <div className="flex flex-col gap-4">
+                                <button onClick={resumeModule} className="bg-indigo-600 text-white font-bold py-5 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 text-center">
+                                    Resume Session
+                                </button>
+                                <button onClick={() => initNewModule(activeModuleName)} className="text-slate-400 font-bold py-2 hover:text-red-500 transition-all uppercase tracking-widest text-xs text-center">
+                                    Start Over
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'menu') {
+                return (
+                    <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans text-slate-900">
+                        <div className="max-w-4xl mx-auto text-left">
+                            <header className="mb-16 animate-fade-in">
+                                <div className="inline-flex items-center gap-3 mb-6">
+                                    <div className="bg-indigo-600 p-4 rounded-3xl shadow-xl">
+                                        <Icon name="BookOpen" className="text-white w-8 h-8" />
+                                    </div>
+                                    <h1 className="text-5xl font-black text-slate-800 tracking-tighter">Kieso Study Hub</h1>
+                                </div>
+                                <p className="text-slate-500 font-medium max-w-lg leading-relaxed text-lg">
+                                    Select a module to begin. Your progress is saved automatically in this browser.
+                                </p>
+                            </header>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {Object.keys(QUIZ_DATA).map((name, idx) => {
+                                    const qCount = QUIZ_DATA[name].length;
+                                    const isEmpty = qCount === 0;
+                                    
+                                    return (
+                                        <button
+                                            key={name}
+                                            onClick={() => !isEmpty && startModule(name)}
+                                            className={`relative p-10 rounded-[2.5rem] text-left transition-all group overflow-hidden animate-fade-in ${
+                                                isEmpty 
+                                                    ? 'bg-slate-50 border-2 border-slate-200/50 opacity-40 cursor-not-allowed' 
+                                                    : 'bg-white border-2 border-white shadow-2xl shadow-slate-200/50 hover:border-indigo-600 active:scale-[0.98]'
+                                            }`}
+                                            style={{ animationDelay: `${idx * 0.1}s` }}
+                                        >
+                                            <div className="relative z-10">
+                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 ${isEmpty ? 'bg-slate-200' : 'bg-indigo-50 group-hover:bg-indigo-600 transition-all'}`}>
+                                                    <Icon name="List" className={isEmpty ? 'text-slate-400' : 'text-indigo-600 group-hover:text-white transition-all'} />
+                                                </div>
+                                                <h3 className="text-2xl font-black mb-3 text-slate-800">{name}</h3>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.15em] ${isEmpty ? 'bg-slate-200 text-slate-400' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                        {qCount} Questions
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'results') {
+                const score = calculateScore();
+                const percentage = ((score / questions.length) * 100).toFixed(1);
+                
+                return (
+                    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-900">
+                        <div className="max-w-2xl w-full bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 animate-fade-in">
+                            <div className="bg-indigo-600 p-12 text-center text-white relative">
+                                <Icon name="Award" size={40} className="mx-auto mb-6" />
+                                <h1 className="text-4xl font-black mb-2 tracking-tighter">Unit Complete</h1>
+                                <p className="text-indigo-100 opacity-80 uppercase tracking-[0.2em] font-black text-xs text-center">{activeModuleName}</p>
+                            </div>
+                            
+                            <div className="p-12 text-center">
+                                <div className="mb-12">
+                                    <span className="text-8xl font-black text-indigo-600 tracking-tighter text-center block">{percentage}%</span>
+                                    <p className="text-slate-500 mt-4 font-bold text-lg text-center">
+                                        Score: {score} / {questions.length} Correct
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 mb-12">
+                                    <div className="bg-green-50 p-8 rounded-[2rem] border border-green-100 text-center">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-green-600 font-black mb-2">Success</p>
+                                        <p className="text-4xl font-black text-green-700">{score}</p>
+                                    </div>
+                                    <div className="bg-red-50 p-8 rounded-[2rem] border border-red-100 text-center">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-red-600 font-black mb-2">Review</p>
+                                        <p className="text-4xl font-black text-red-700">{questions.length - score}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <button onClick={() => initNewModule(activeModuleName)} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-6 rounded-2xl transition-all">
+                                        <Icon name="RefreshCcw" size={20} />
+                                        New Order
+                                    </button>
+                                    <button onClick={goToMenu} className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 rounded-2xl transition-all shadow-xl active:scale-95 text-center">
+                                        <Icon name="Home" size={20} />
+                                        Hub Menu
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- QUIZ VIEW ---
+            const currentQ = questions[currentQuestion];
+            const userSelected = selectedOptions[currentQuestion];
+            const isCorrect = userSelected === currentQ.answer;
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+
+            return (
+                <div className="min-h-screen bg-slate-50 py-10 px-4 font-sans text-slate-900 animate-fade-in">
+                    <div className="max-w-4xl mx-auto text-left">
+                        <div className="mb-8 flex items-center justify-between">
+                            <button onClick={goToMenu} className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold transition-all group">
+                                <Icon name="Home" size={20} className="group-hover:-translate-y-0.5 transition-transform" />
+                                <span className="hidden sm:inline uppercase tracking-widest text-xs">Exit Hub</span>
+                            </button>
+                            <div className="text-right">
+                                <p className="text-2xl font-black text-indigo-600 leading-none">
+                                    {currentQuestion + 1} <span className="text-slate-300 font-normal">/ {questions.length}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="w-full h-3 bg-slate-200 rounded-full mb-10 overflow-hidden shadow-inner">
+                            <div className="h-full bg-indigo-600 transition-all duration-700 ease-out" style={{ width: `${progress}%` }} />
+                        </div>
+
+                        <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden mb-10">
+                            <div className="p-8 md:p-12">
+                                <h3 className="text-lg font-normal leading-relaxed mb-8 text-slate-800 pre-wrap text-left">
+                                    {currentQ.question}
+                                </h3>
+
+                                <div className="space-y-3">
+                                    {currentQ.options.map((option, idx) => {
+                                        let statusClass = "border-slate-100 bg-slate-50/50 hover:border-indigo-200 hover:bg-white";
+                                        let icon = null;
+
+                                        if (isAnswered) {
+                                            if (idx === currentQ.answer) {
+                                                statusClass = "border-green-500 bg-green-50/80 ring-2 ring-green-500 shadow-lg";
+                                                icon = <Icon name="CheckCircle2" className="text-green-600" size={24} />;
+                                            } else if (idx === userSelected) {
+                                                statusClass = "border-red-500 bg-red-50/80 ring-2 ring-red-500 shadow-lg";
+                                                icon = <Icon name="XCircle" className="text-red-600" size={24} />;
+                                            } else {
+                                                statusClass = "border-transparent opacity-30 grayscale pointer-events-none";
+                                            }
+                                        } else if (userSelected === idx) {
+                                            statusClass = "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-600 shadow-xl";
+                                        }
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                disabled={isAnswered}
+                                                onClick={() => handleOptionSelect(idx)}
+                                                className={`w-full text-left p-3 rounded-xl border-2 transition-all flex items-start gap-4 group active:scale-[0.99] ${statusClass}`}
+                                            >
+                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-xs transition-all shadow-sm ${
+                                                    isAnswered && idx === currentQ.answer 
+                                                        ? 'bg-green-600 text-white rotate-[360deg]' 
+                                                        : isAnswered && idx === userSelected 
+                                                        ? 'bg-red-600 text-white'
+                                                        : userSelected === idx 
+                                                        ? 'bg-indigo-600 text-white scale-110 shadow-indigo-200' 
+                                                        : 'bg-white text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600'
+                                                }`}>
+                                                    {String.fromCharCode(65 + idx)}
+                                                </span>
+                                                <span className="pt-1 grow font-normal text-slate-700 leading-normal text-base pre-wrap">{option}</span>
+                                                <div className="shrink-0 pt-1">{icon}</div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {isAnswered && (
+                                <div className={`px-8 py-6 border-t flex items-center justify-between font-bold text-lg ${isCorrect ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                                    <div className="flex items-center gap-4">
+                                        {isCorrect ? <Icon name="CheckCircle2" size={24} /> : <Icon name="XCircle" size={24} />}
+                                        {isCorrect ? "Correct" : `Incorrect. The answer is ${String.fromCharCode(65 + currentQ.answer)}`}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center px-6">
+                            <button
+                                onClick={prevQuestion}
+                                disabled={currentQuestion === 0}
+                                className="flex items-center gap-2 px-8 py-5 font-bold text-slate-400 hover:text-indigo-600 disabled:opacity-0 transition-all uppercase tracking-[0.2em] text-xs"
+                            >
+                                <Icon name="ChevronLeft" size={24} />
+                                Previous
+                            </button>
+                            
+                            <button
+                                onClick={nextQuestion}
+                                disabled={!isAnswered}
+                                className="flex items-center gap-4 bg-slate-900 hover:bg-black disabled:bg-slate-200 text-white px-14 py-6 rounded-3xl font-bold transition-all shadow-2xl active:scale-95 uppercase tracking-[0.2em] text-xs text-center"
+                            >
+                                {currentQuestion === questions.length - 1 ? "Complete" : "Continue"}
+                                <Icon name="ChevronRight" size={24} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const shuffleArray = (array) => {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        };
+
+        const prepareQuizData = (rawQuestions) => {
+            const shuffledQuestions = shuffleArray(rawQuestions);
+            return shuffledQuestions.map(q => {
+                const optionsWithMetadata = q.options.map((text, idx) => ({
+                    text,
+                    isCorrect: idx === q.answer
+                }));
+                const shuffledOptions = shuffleArray(optionsWithMetadata);
+                return {
+                    ...q,
+                    options: shuffledOptions.map(o => o.text),
+                    answer: shuffledOptions.findIndex(o => o.isCorrect)
+                };
+            });
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
