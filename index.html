@@ -1,146 +1,564 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Accounting Quiz - Unit 3 Investments</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 900px;
-    margin: 30px auto;
-    padding: 20px;
-    line-height: 1.5;
-  }
-  h1 { text-align: center; color: #2c3e50; }
-  #quiz-container { margin-top: 30px; }
-  .question { font-weight: bold; margin-bottom: 10px; }
-  .options label {
-    display: block;
-    margin: 8px 0;
-    cursor: pointer;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin: 10px 0;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:hover { background: #2980b9; }
-  #feedback {
-    margin: 15px 0;
-    padding: 12px;
-    border-radius: 5px;
-    font-weight: bold;
-  }
-  .correct { background: #d4edda; color: #155724; }
-  .incorrect { background: #f8d7da; color: #721c24; }
-  #score { font-size: 1.3em; margin: 20px 0; text-align: center; }
-  #progress { font-size: 1.1em; color: #555; margin-bottom: 15px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Study Hub</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .pre-line { white-space: pre-line; }
+        .font-normal { font-weight: 400 !important; }
+        
+        .feedback-enter {
+            animation: slideDown 0.3s ease-out forwards;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen font-normal text-left">
+    <div id="root"></div>
 
-<h1>Accounting Quiz – Investments (44 Questions)</h1>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-<div id="quiz-container">
-  <div id="progress"></div>
-  <div id="question-text" class="question"></div>
-  <div id="options"></div>
-  <div id="feedback"></div>
-  <button id="submit-btn" onclick="checkAnswer()">Submit Answer</button>
-  <button id="next-btn" onclick="nextQuestion()" style="display:none;">Next Question</button>
-  <div id="score"></div>
-  <button id="restart-btn" onclick="startQuiz()" style="display:none;">Start New Quiz</button>
-</div>
+        const shuffleArray = (array) => {
+            const newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+        };
 
-<script>
-// All 44 questions
-const quizData = [
-  { q: "An available-for-sale debt security is purchased at a discount. What is included in an entry to record the amortization of the discount?", a: "C", options: ["A. Debit to Interest Payable", "B. Debit to the Discount Account", "C. Debit to Debt Investments", "D. Debit to Interest Revenue"] },
-  { q: "How long are Trading securities generally held for?", a: "B", options: ["A. Less than 3 weeks", "B. Less than 3 months", "C. Less than 6 months", "D. Less than 12 months"] },
-  { q: "What is accurate in accounting for investments in debt securities for discounts or premiums?", a: "C", options: ["A. Any discount or premium is not amortized.", "B. A discount is reported separately.", "C. Any discount or premium is amortized.", "D. A premium is reported separately."] },
-  { q: "On its December 31, 2020, balance sheet, Estes Co. reported its investment in trading securities, which had cost $500,000, at fair value of $475,000. At December 31, 2021 the fair value of the securities was $492,500. What should Estes report on its 2021 income statement as a result of the increase in fair value of the investments in 2021?", a: "D", options: ["A. $0.00", "B. Unrealized loss of $7,500", "C. Realized gain of $17,500", "D. Unrealized gain of $17,500"] },
-  { q: "What are Investments in debt securities generally recorded at?", a: "A", options: ["A. Cost including brokerage and other fees", "B. Cost including accrued interest", "C. Maturity value with a separate discount or premium account", "D. Maturity value"] },
-  { q: "What are Debt securities that are bought and held primarily for sale in the near term are reported at?", a: "C", options: ["A. Net realizable value", "B. Cost", "C. Fair value", "D. Amortized cost"] },
-  { q: "What equity securities are acquired by a corporation which are accounted for by recognizing unrealized holding gains or losses?", a: "C", options: ["A. Securities where a company has holdings of more than 20%", "B. Securities where a company has holdings of between 20% and 50%", "C. Securities where a company has holdings of less than 20%", "D. Securities where a company has holdings of more than 50%"] },
-  { q: "During 2020, Grambling Company purchased 10,000 shares of Southern Corp. common stock for $215,000 as a passive interest investment. The fair value of these shares was $289,000 at December 31, 2020. During 2020, Grambling sold all of the Southern stock for $226,000. What realized gain on sale of stock in 2020 should Grambling Company report?", a: "A", options: ["A. $11,000.00", "B. $25,000.00", "C. $26,000.00", "D. $37,000.00"] },
-  { q: "Under the equity method of accounting for investments, when should an investor recognize its share of the earnings?", a: "D", options: ["A. When an investee declares a dividend", "B. When an investee pays a dividend", "C. When an investor sells the investment", "D. When earnings are reported by the investee in its financial statements"] },
-  { q: "Koehn Corporation accounts for its investment in the common stock of Sells Company under the equity method. How should Koehn Corporation ordinarily record a cash dividend received from Sells as?", a: "C", options: ["A. Dividend income", "B. Additional paid-in capital", "C. A reduction of the carrying value of the investment", "D. An addition to the carrying value of the investment"] },
-  // ... (continuing with all questions - abbreviated here for brevity)
-  // You can copy-paste the remaining questions from the array in my previous response or let me know if you want the full 44-item array expanded here.
-  // For space, I'm showing structure – in practice replace this comment with the full array from earlier Python version converted to JS objects.
-];
+        const QUESTION_DATA = {
+            unit2: [
+                { id: "u2-1", question: `Which approach does the new standard, Revenue from Contracts with Customers, adopt?`, options: ["Criteria that de-emphasize the importance of contracts with customers", "A revenue-gain approach for revenue recognition", "An asset-liability approach for revenue recognition", "Earned and realized criteria"], answer: "An asset-liability approach for revenue recognition" },
+                { id: "u2-2", question: `Airbus signed a contract to deliver airplanes to American Airlines.
+Which step in the process of revenue recognition does this represent?`, options: ["Allocate transaction price to the separate performance obligations.", "Recognize revenue when each performance obligation is satisfied.", "Identify the contract with customers.", "Determine the transaction price."], answer: "Identify the contract with customers." },
+                { id: "u2-3", question: `What describes the converged standard on revenue recognition?`, options: ["Simplifies revenue recognition practices across entities and industries", "Reduces the number of disclosures required for revenue reporting", "Increases the complexity of financial statement preparation", "Recognizes and measures revenue based on changes in assets and liabilities"], answer: "Recognizes and measures revenue based on changes in assets and liabilities" },
+                { id: "u2-4", question: `Airbus records revenue of $200 million for the sale of the airplanes to American Airlines when it satisfies its performance obligation.
+Which step in the process of revenue recognition does this represent?`, options: ["Recognize revenue when each performance obligation is satisfied.", "Identify the separate performance obligations in the contract.", "Allocate transaction price to the separate performance obligations.", "Determine the transaction price."], answer: "Recognize revenue when each performance obligation is satisfied." },
+                { id: "u2-5", question: `Airbus has only one performance obligation — to deliver airplanes to American Airlines, which has a transaction price of $200 million.
+Which step in the process of revenue recognition does this represent?`, options: ["Recognize revenue when each performance obligation is satisfied.", "Determine the transaction price.", "Identify the separate performance obligations in the contract.", "Allocate transaction price to the separate performance obligations."], answer: "Allocate transaction price to the separate performance obligations." },
+                { id: "u2-6", question: `To address inconsistencies and weaknesses in revenue recognition, which comprehensive revenue recognition standard was developed?`, options: ["Revenue Recognition Principle", "Revenue from Contracts with Customers", "Rules-based Revenue Accounting", "Principle-based Revenue Accounting"], answer: "Revenue from Contracts with Customers" },
+                { id: "u2-7", question: `Hendrix Inc., an equipment dealer, sells equipment on January 1, 2020, to Jimi Company for $200,000. Also, on January 1, 2020, Hendrix agrees to repurchase this equipment from Jimi Company on December 31, 2021, for a price of $233,280.
+How should Hendrix Inc. record this transaction on January 1, 2020?`, options: ["Sales revenue of $200,000 and a liability of $33,280", "Sales revenue of $200,000 and interest expense of $33,280", "A liability of $200,000", "Sales revenue of $200,000"], answer: "A liability of $200,000" },
+                { id: "u2-8", question: `What is the role of the agent in a Principal-Agent relationship?`, options: ["Develop and maintain goodwill of the principal's customers", "Arrange for the principal to provide goods or services to a customer", "Provide the goods or services for a customer", "Market the principal goods and services to prospective customers"], answer: "Arrange for the principal to provide goods or services to a customer" },
+                { id: "u2-9", question: `Bret Company sold 3,000 Holsks during 2020 at a total price of $12,000,000, with a warranty guarantee that the product was free of any defects. The cost of Holsks sold is $7,200,000. The term of the assurance warranty is two years, with an estimated cost of $80,000. In addition, Bret sold extended warranties related to 1,100 Holsks for 3 years beyond the 2-year period for $110,000.
+Which amount should Bret recognize Unearned Warranty Revenue in 2020?`, options: ["$0", "$80,000", "$110,000", "$190,000"], answer: "$110,000" },
+                { id: "u2-10", question: `In a consignment sale, which transaction does the consignee record?`, options: ["Makes a journal entry when the consigned merchandise is received.", "Records advertising paid for the consignment as an expense.", "Recognizes both commission revenue and sales revenue.", "Records a payable when consigned merchandise is sold."], answer: "Records a payable when consigned merchandise is sold." },
+                { id: "u2-11", question: `How is an option to purchase a warranty recorded?`, options: ["Revenue in the period that the service-type warranty is in effect.", "An assurance-type warranty which is included in the sales price of the product.", "An expense in the period the goods or services are sold.", "A warranty liability for all costs incurred after sale due to correction of defects."], answer: "Revenue in the period that the service-type warranty is in effect." },
+                { id: "u2-12", question: `How are unconditional rights to receive consideration because a performance obligation has been satisfied reported?`, options: ["Reported as a contract asset on the balance sheet", "Reported as a contract liability on the balance sheet", "Reported as a receivable on the balance sheet", "Reported as a receivable on the income statement"], answer: "Reported as a receivable on the balance sheet" },
+                { id: "u2-13", question: `How is a partial satisfaction of a multiple performance obligation reported on the balance sheet?`, options: ["As a contract liability", "As unearned service revenue", "As a contract asset", "As a receivable"], answer: "As a contract asset" },
+                { id: "u2-14", question: `On July 31, O'Malley Company contracted to have two products built by Taylor Manufacturing for a total of $370,000. The contract specifies that payment will only occur after both products have been transferred to O'Malley Company. Taylor determines that the standalone prices are $200,000 for Product 1 and $170,000 for Product 2.
+On August 1, when Product 1 has been transferred, what does Taylor's journal entry to record this event include?`, options: ["Debit to Accounts Receivable for $170,000", "Debit to Contract Assets for $170,000", "Debit to Contract Assets for $200,000", "Debit to Accounts Receivable for $200,000"], answer: "Debit to Contract Assets for $200,000" },
+                { id: "u2-15", question: `When must a company account for a contract modification as a new contract?`, options: ["If goods or services are interdependent on each other", "If promised goods or services are not distinct", "If changes are agreed upon in writing by both parties", "If goods or services are distinct and company has right to receive the standalone price"], answer: "If goods or services are distinct and company has right to receive the standalone price" },
+                { id: "u2-16", question: `Under the percentage-of-completion method, how should the balances of Billings on Construction in Process and Construction in Process be reported prior to the completion of a long-term contract?`, options: ["Billings on Construction in Process as revenue and Construction in Process as inventory", "Billings on Construction in Process as a deferred revenue and Construction in Process as a deferred expense", "Net, as revenue from construction if a credit balance, and as a loss from construction if debit balance", "Net, as a current asset if a debit balance, and as a current liability if a credit balance"], answer: "Net, as a current asset if a debit balance, and as a current liability if a credit balance" },
+                { id: "u2-17", question: `Which type of revenue or gain is generally recognized with the passage of time?`, options: ["Revenue from fees or services", "Revenue from sales", "Gain or loss from disposition", "Long-term construction contracts"], answer: "Long-term construction contracts" },
+                { id: "u2-18", question: `When should companies use the percentage-of completion method to account for long-term construction contracts?`, options: ["Always unless required to use the completed-contract method", "When the company has primarily short-term contracts", "When there are inherent hazards in the contract beyond the normal business risks", "When estimates of progress towards satisfaction of the performance obligation are not dependable"], answer: "Always unless required to use the completed-contract method" },
+                { id: "u2-19", question: `How should the Billings on Construction in Process account be reported?`, options: ["As a current asset or current liability section", "As a current liability only", "As a current asset section only", "As a revenue on the income statement"], answer: "As a current asset or current liability section" },
+                { id: "u2-20", question: `In selecting an accounting method for a newly contracted long-term construction project, what principal factor should be considered?`, options: ["The degree to which a reliable estimate of the costs to complete and extent of progress toward completion is practicable", "The terms of payment in the contract", "The method commonly used by the contractor to account for other long-term construction contracts", "The inherent nature of the contractor's technical facilities used in construction"], answer: "The degree to which a reliable estimate of the costs to complete and extent of progress toward completion is practicable" },
+                { id: "u2-21", question: `How is a loss in the current period on a contract expected to be profitable upon completion in a later year recognized?`, options: ["Under the construction in process method", "Under the completed construction method", "Under the percentage-of-completion method", "Under the completed-contract method"], answer: "Under the percentage-of-completion method" },
+                { id: "u2-22", question: `Beyond the one performance obligation to deliver airplanes to American Airlines, Airbus has also agreed to maintain the planes, which represents a separate performance obligation recorded for this promise.
+Which step in the process of revenue recognition does this represent?`, options: ["Allocate transaction price to the separate performance obligations.", "Determine the transaction price.", "Identify the separate performance obligations in the contract.", "Identify the contract with customers."], answer: "Identify the separate performance obligations in the contract." },
+                { id: "u2-23", question: `Stossel Company sells 300 units for $200 each to Liberty Inc. for cash. Stossel allows Liberty to return any unused product within 30 days and receive a full refund. The cost of each product is $120. To determine the transaction price, Stossel decides that the approach that is most predictive of the amount of consideration to which it will be entitled is the most likely amount. Using the most likely amount, Stossel estimates that 10 units will be returned, the costs of recovering the units will bePipe immaterial, and the returned units are expected to be resold at a profit.
+Which amount of refund liability should Stossel record at the time of sale?`, options: ["$0", "$800", "$1,200", "$2,000"], answer: "$2,000" },
+                { id: "u2-24", question: `When should the seller of a good or service recognize revenue?`, options: ["When they identify the separate performance obligations in the contract", "When they determine that the performance obligation is satisfied", "When they determine the transaction price", "When they identify the contract with customers"], answer: "When they determine that the performance obligation is satisfied" },
+                { id: "u2-25", question: `What best describes the percentage-of-completion method?`, options: ["It is used mainly for short-term contracts.", "It is used for construction costs, which are accumulated in the Billings on Construction in Progress account.", "Revenue and gross profits are recognized only when a contract is completed.", "Revenue and gross profits are recognized each period based upon progress."], answer: "Revenue and gross profits are recognized each period based upon progress." },
+                { id: "u2-26", question: `What is an example of a contract liability?`, options: ["Service Revenue", "Mortgage Payable", "Prepaid subscription", "Unearned magazine subscription"], answer: "Unearned magazine subscription" }
+            ],
+            unit3: [
+                { id: "u3-1", question: `An available-for-sale debt security is purchased at a discount.
+What is included in an entry to record the amortization of the discount?`, options: ["Debit to Interest Payable", "Debit to the Discount Account", "Debit to Debt Investments", "Debit to Interest Revenue"], answer: "Debit to Debt Investments" },
+                { id: "u3-2", question: `How long are Trading securities generally held for ?`, options: ["Less than 3 weeks", "Less than 3 months", "Less than 6 months", "Less than 12 months"], answer: "Less than 3 months" },
+                { id: "u3-3", question: `What is accurate in accounting for investments in debt securities for discounts or premiums?`, options: ["Any discount or premium is not amortized.", "A discount is reported separately.", "Any discount or premium is amortized.", "A premium is reported separately."], answer: "Any discount or premium is amortized." },
+                { id: "u3-4", question: `On its December 31, 2020, balance sheet, Estes Co. reported its investment in trading securities, which had cost $500,000, at fair value of $475,000. At December 31, 2021 the fair value of the securities was $492,500.
+What should Estes report on its 2021 income statement as a result of the increase in fair value of the investments in 2021?`, options: ["$0.00", "Unrealized loss of $7,500", "Realized gain of $17,500", "Unrealized gain of $17,500"], answer: "Unrealized gain of $17,500" },
+                { id: "u3-5", question: `What are Investments in debt securities generally recorded at?`, options: ["Cost including brokerage and other fees", "Cost including accrued interest", "Maturity value with a separate discount or premium account", "Maturity value"], answer: "Cost including brokerage and other fees" },
+                { id: "u3-6", question: `What are Debt securities that are bought and held primarily for sale in the near term are reported at?`, options: ["Net realizable value", "Cost", "Fair value", "Amortized cost"], answer: "Fair value" },
+                { id: "u3-7", question: `What equity securities are acquired by a corporation which are accounted for by recognizing unrealized holding gains or losses?`, options: ["Securities where a company has holdings of more than 20%", "Securities where a company has holdings of between 20% and 50%", "Securities where a company has holdings of less than 20%", "Securities where a company has holdings of more than 50%"], answer: "Securities where a company has holdings of less than 20%" },
+                { id: "u3-8", question: `During 2020, Grambling Company purchased 10,000 shares of Southern Corp. common stock for $215,000 as a passive interest investment. The fair value of these shares was $289,000 at December 31, 2020. During 2020, Grambling sold all of the Southern stock for $226,000.
+What realized gain on sale of stock in 2020 should Grambling Company should report?`, options: ["$11,000.00", "$25,000.00", "$26,000.00", "$37,000.00"], answer: "$11,000.00" },
+                { id: "u3-9", question: `Under the equity method of accounting for investments, when should an investor recognize its share of the earnings?`, options: ["When an investee declares a dividend", "When an investee pays a dividend", "When an investor sells the investment", "When earnings are reported by the investee in its financial statements"], answer: "When earnings are reported by the investee in its financial statements" },
+                { id: "u3-10", question: `Koehn Corporation accounts for its investment in the common stock of Sells Company under the equity method.
+How should Koehn Corporation ordinarily record a cash dividend received from Sells as?`, options: ["Dividend income", "Additional paid-in capital", "A reduction of the carrying value of the investment", "An addition to the carrying value of the investment"], answer: "A reduction of the carrying value of the investment" },
+                { id: "u3-11", question: `When a company holds between 20% and 50% of the outstanding stock of an investee, what is true?`, options: ["The investor should use the equity method to account for its investment unless circumstances indicate that it is unable to exercise \"significant influence\" over the investee.", "The investor must use the fair value method unless it can clearly demonstrate the ability to exercise \"significant influence\" over the investee.", "The investor should always use the fair value method to account for its investment.", "The investor should always use the equity method to account for its investment."], answer: "The investor should use the equity method to account for its investment unless circumstances indicate that it is unable to exercise \"significant influence\" over the investee." },
+                { id: "u3-12", question: `Under the equity method, if an investee company generates net income, what transaction should the investor company make?`, options: ["Records its proportionate share as an increase in its retained earnings", "Records its proportionate share of the net income as dividend income", "Records its proportionate share as an increase in its investment account", "Records its proportionate share as an unrealized gain"], answer: "Records its proportionate share as an increase in its investment account" },
+                { id: "u3-13", question: `Foucault Company owns 40,000 of the 100,000 outstanding shares of Mango Inc. common stock. During 2020, Mango earns $640,000 and pays cash dividends of $480,000. If the beginning balance in Foucault’s investment account was $430,000, what is the balance at December 31, 2020?`, options: ["$366,000", "$430,000", "$494,000", "$686,000"], answer: "$494,000" },
+                { id: "u3-14", question: `Which accounting method should be applied when there is an ownership interest of 90% of the common stock of another corporation?`, options: ["Equity method", "Cost method", "Fair value method", "Consolidated method"], answer: "Consolidated method" },
+                { id: "u3-15", question: `What is accurate about transfers between categories?`, options: ["They result in companies omitting recognition of fair value in the year of the transfer.", "They will always result in an impact on net income.", "They are accounted for at fair value for all transfers.", "They are considered unrealized and unrecognized if transferred out of held-to-maturity into trading."], answer: "They are accounted for at fair value for all transfers." },
+                { id: "u3-16", question: `What does the fair value option allow a company to do?`, options: ["Report most financial instruments at fair value at any point of time", "Account for held-to-maturity securities at amortized cost", "Report most financial instruments at amortized cost at any point of time", "Record the unrealized gains and losses related to changes in the fair value of available-for-sale debt securities in net income"], answer: "Report most financial instruments at fair value at any point of time" },
+                { id: "u3-17", question: `What does “gains trading” involve?`, options: ["Reporting investment securities at fair value but liabilities at amortized cost", "Moving securities whose value has decreased since acquisition from available-for-sale to held-to-maturity in order to avoid reporting losses", "Selling securities whose value has increased since acquisition (winners) while holding those whose value has decreased since acquisition (losers)", "Reporting investment securities and liabilities at amortized cost"], answer: "Selling securities whose value has increased since acquisition (winners) while holding those whose value has decreased since acquisition (losers)" },
+                { id: "u3-18", question: `Dublin Company holds a 30% stake in Club Company which was purchased in 2021 at a cost of $3,000,000. After applying the equity method, the Investment in Club Company account has a balance of $3,040,000. At December 31, 2021 the fair value of the investment is $3,120,000.
+What is an acceptable value for Dublin to use in its balance sheet at December 31, 2021?`, options: ["$3,000,000 only", "$3,040,000 only", "$3,000,000 and $3,040,000", "$3,040,000 and $3,120,000"], answer: "$3,040,000 only" },
+                { id: "u3-19", question: `In which section is a reclassification adjustment reported?`, options: ["Income statement as an Other revenue or expense", "Statement of stockholders' equity", "Statement of comprehensive income as other comprehensive income", "Stockholders' equity section of the balance sheet"], answer: "Statement of comprehensive income as other comprehensive income" },
+                { id: "u3-20", question: `When an investment in a held-to-maturity security is transferred to an available-for-sale debt security, what should the carrying value assigned to the available-for-sale debt security be?`, options: ["Its original cost", "The lower of its original cost or its fair value at the date of the transfer", "Its fair value at the date of the transfer", "The higher of its original cost or its fair value at the date of the transfer"], answer: "Its fair value at the date of the transfer" },
+                { id: "u3-21", question: `What is true about Impairments?`, options: ["They are based on discounted cash flows for securities.", "They are evaluated using the CECL model similar to receivables.", "They are based on fair value for available-for-sale investments and on negotiated values for held-to-maturity investments.", "They are recognized as a realized loss if the impairment is judged to be temporary."], answer: "They are evaluated using the CECL model similar to receivables." },
+                { id: "u3-22", question: `Which debt securities below record any unrealized holding gains or losses as part of other comprehensive income?`, options: ["Long-term securities", "Available-for-sale securities", "Trading securities", "Held-to-maturity securities"], answer: "Available-for-sale securities" },
+                { id: "u3-23", question: `Savannah Corporation purchased 35,000 shares of common stock of the Boulet Corporation for $50 per share on January 2, 2020. During 2020, Boulet Corporation had 140,000 shares of common stock outstanding, paid cash dividends of $120,000, and reported net income of $320,000.
+What amount should Savannah Corporation record as income on its income statement from this investment in 2020?`, options: ["$0", "$30,000", "$50,000", "$80,000"], answer: "$80,000" },
+                { id: "u3-24", question: `During 2020, Jackson Company purchased 17,000 shares of Monticello Corp. common stock for $382,500 as a passive interest investment. The fair value of these shares was $373,150 at December 31, 2020. Jackson sold all of the Monticello stock for $27.25 per share on July 3, 2021, incurring $15,000 in brokerage commissions.
+Which realized gain on the sale of stock in 2021 should Jackson Company report?`, options: ["$65,750.00", "$75,100.00", "$80,750.00", "$90,100.00"], answer: "$65,750.00" },
+                { id: "u3-25", question: `When the parent treats the investment as a subsidiary, how does the parent generally prepare their financial statements?`, options: ["Using the parent financial statement only", "Using the subsidiary financial statement only", "Using consolidated financial statements", "Using a note in the disclosure statement"], answer: "Using consolidated financial statements" },
+                { id: "u3-26", question: `What is accurate about the effective-interest method of amortization?`, options: ["It must be used to amortize a discount or premium unless some other method yields a similar result.", "Amortization of a premium decreases from period to period.", "The effective-interest method applied to investments in debt securities is different from that applied to bonds payable.", "Amortization of a discount decreases from period to period."], answer: "It must be used to amortize a discount or premium unless some other method yields a similar result." },
+                { id: "u3-27", question: `Which method should be used to measure impairment of available-for-sale debt investments?`, options: ["Current expected credit loss model", "Discounted cash flows", "Fair value test", "Actual selling price"], answer: "Actual selling price" },
+                { id: "u3-28", question: `During Year 1, Company A purchased an investment of 4,000 shares of Company B common stock for $248,000, plus $6,000 of brokerage fees. Company A sold all of the Company B stock for $68 per share on December 31, Year 2, when the fair value was $268,000 at the close of business that same day.
+Which amount should be recorded for the realized gain on the sale of stock in Year 2?`, options: ["$4,000", "$18,000", "$20,000", "$24,000"], answer: "$18,000" },
+                { id: "u3-29", question: `Which valuation method is used to record securities which are categorized as trading securities?`, options: ["Fair value", "Amortized cost", "Net realizable value", "Cost"], answer: "Fair value" },
+                { id: "u3-30", question: `Which security can be classified as a held-to-maturity security?`, options: ["Call warrant", "Debt security", "Class A stock", "Common stock"], answer: "Debt security" },
+                { id: "u3-31", question: `A company transfers its securities from held-to-maturity to available-for-sale.
+Which impact from unrealized gains/losses will stem from this transfer?`, options: ["Change in trading securities", "Change in stockholders' equity", "Change in retained earnings", "Change in income"], answer: "Change in stockholders' equity" },
+                { id: "u3-32", question: `A company transfers available-for-sale securities to trading securities.
+Which measurement basis should be used to determine the cost basis?`, options: ["Cost plus brokerage fees and other costs incidental to the purchase", "Fair value at transfer date", "Lower of cost or market", "Maturity value plus brokerage fees and other costs incidental to the purchase"], answer: "Fair value at transfer date" },
+                { id: "u3-33", question: `An investor uses the equity method and has an investee that has generated net income.
+How should this income be recorded by the investor?`, options: ["Debit the proportionate share to the cash account", "Debit the proportionate share to the equity investment account", "Credit the proportionate share to the sales revenue account", "Credit the proportionate share to the retained earnings account"], answer: "Debit the proportionate share to the equity investment account" },
+                { id: "u3-34", question: `A company reports net income for the year of $75,000. Other available information is as follows:
+Realized gain on sale of available-for-sale securities: $45,000
+Unrealized holding gains on available-for-sale securities: $30,000
+Unrealized holding gains on trading securities: $30,000
+Which amount represents the company's comprehensive net income?`, options: ["$75,000", "$105,000", "$150,000", "$190,000"], answer: "$105,000" },
+                { id: "u3-35", question: `On August 1, Year 1, Company A acquires $650,000 face value 10% bonds of Company B at 105 plus accrued interest. The bonds are dated May 1, Year 1 and mature on April 30, Year 6, with interest payable each October 31 and April 30. The bonds will be held to maturity.
+Which amount should Company A use to record the purchase of the bonds on August 1, Year 1, in the Debt Investments account?`, options: ["$617,500", "$650,000", "$682,500", "$715,000"], answer: "$682,500" },
+                { id: "u3-36", question: `Kretsmart accounts for its investment in the common stock of Quiet Flag Industries using the equity method and needs to record net income from that company.
+How should that income be recorded?`, options: ["As a reduction of the carrying value of the investment", "As dividend income", "As an addition to the carrying value of the investment", "As additional paid-in capital"], answer: "As an addition to the carrying value of the investment" },
+                { id: "u3-37", question: `During Year 1, Company A purchases an investment of 10,000 shares of Company B common stock for $780,000, plus $10,000 of brokerage fees. Company A sold all of the company B stock for $84 per share when the fair value was $810,000 at the close of the business day.
+Which amount should be recorded for the realized gain on the sale of stock in Year 2?`, options: ["$20,000", "$30,000", "$50,000", "$60,000"], answer: "$50,000" },
+                { id: "u3-38", question: `Which valuation method is used to record securities which are categorized as trading securities?`, options: ["Amortized cost", "Fair value", "Net realizable value", "Cost"], answer: "Fair value" },
+                { id: "u3-39", question: `Company A owns 35% of Company B. During the calendar year, Company B had net earnings of $300,000 and paid dividends of $30,000. Company A mistakenly recorded these transactions using the fair value method rather than the equity method of accounting. There was no adjustment for fair value.
+How will this error impact the investment account for Company A?`, options: ["Overstate it by $94,500", "Understate it by $105,000", "Overstate it by $105,000", "Understate it by $94,500"], answer: "Understate it by $94,500" },
+                { id: "u3-40", question: `Company A has a 10% ownership in Company B. Company B was purchased on January 1, Year 1, at a cost of $3,000,000. At the end of Year 1, Company B reports net income of $500,000 and paid total dividends of $40,000.
+Which value should be used for the investment in Company B on Company A's balance sheet at the end of Year 1?`, options: ["$3,000,000", "$3,046,000", "$3,030,000", "$3,034,000"], answer: "$3,000,000" },
+                { id: "u3-41", question: `A parent company owns 90% of the subsidiary company's outstanding common stock.
+How should the company account for the income of the subsidiary?`, options: ["A decrease to the retained earnings account", "An increase to the equity investment account", "An increase to the retained earnings account", "A decrease to the equity investment account"], answer: "An increase to the equity investment account" },
+                { id: "u3-42", question: `Which statement describes the accounting treatment for the transfer of debt securities from available-for-sale to held-to-maturity?`, options: ["Realized gains or losses at the date of transfer are recognized in income.", "Realized gains or losses at the date of transfer are amortized over the remaining life of the securities.", "Unrealized gains or losses at the date of transfer are amortized over the remaining life of the securities.", "Unrealized gains or losses at the date of transfer are recognized in income."], answer: "Unrealized gains or losses at the date of transfer are amortized over the remaining life of the securities." },
+                { id: "u3-43", question: `Which equity securities should be accounted for using the equity method?`, options: ["Securities where a company has holdings of less than 20%", "Securities where a company has holdings between 20% and 50%", "Securities where a company has holdings of more than 80%", "Securities where a company has holdings of between 50% and 80%"], answer: "Securities where a company has holdings between 20% and 50%" },
+                { id: "u3-44", question: `During Year 1, Company A purchased 26,000 shares of Company B common stock for $260,000. The fair value of the shares was $320,000 at December 31, Year 1. Company A sold all of the Company B stock for $10.25 per share on May 1, Year 2, incurring $8,000 in brokerage commissions.
+Which amount should Company A report as a realized gain or loss on the sale of stock in Year 2?`, options: ["$1,500 realized loss", "$6,500 realized gain", "$61,500 realized loss", "$14,500 realized gain"], answer: "$1,500 realized loss" }
+            ],
+            unit4: [
+                { id: "u4-1", question: `Use the following information regarding Cooper Company:
+Cooper's tax rate is 20%
+Taxable Income for three years: 2020 - $500,000; 2021 - $375,000; 2022 - $400,000
+On January 2, 2020, heavy equipment costing $800,000 was purchased. The equipment had a life of 5 years and no salvage value. The straight-line method of depreciation is used for book purposes and the tax depreciation taken each year is listed below:
+2020: $264,000 2021: $360,000 2022: $120,000 2023: $56,000 2024: $0
+Additionally, on January 2, 2021, $360,000 was collected in advance for rental of a building for a three-year period. The entire $360,000 was reported as taxable income in 2021, but $240,000 of the $360,000 was reported as unearned revenue at December 31, 2021 for book purposes.
+What is the net deferred tax liability or asset (benefit) for 2021?`, options: ["$48,000 Deferred tax liability", "$48,000 Deferred tax asset (benefit)", "$8,000 Deferred tax liability", "$8,000 Deferred tax asset (benefit)"], answer: "$8,000 Deferred tax asset (benefit)" },
+                { id: "u4-2", question: `What is required for a company when recognizing a valuation allowance for a deferred tax asset?`, options: ["Only the positive information must be considered in determining the need for a valuation allowance.", "An aggressive approach must be taken in its tax planning", "A recognition threshold must be passed, after assuming that it will be audited by taxing authorities.", "All positive and negative information must be considered in determining the need for a valuation allowance."], answer: "All positive and negative information must be considered in determining the need for a valuation allowance." },
+                { id: "u4-3", question: `What is income tax payable based (computed) on?`, options: ["Income before taxes", "Taxable income", "Income for book purposes", "Pretax financial income"], answer: "Taxable income" },
+                { id: "u4-4", question: `What is income tax expense based on?`, options: ["Taxable income", "Pretax income adjusted for permanent differences", "Operating income", "Income from continuing operations"], answer: "Pretax income adjusted for permanent differences" },
+                { id: "u4-5", question: `What does a deferred tax liability represent?`, options: ["Increase in taxes payable in future years as a result of taxable temporary differences", "Decrease in taxes saved in future years as a result of deductible temporary differences", "Decrease in taxes payable in future years as a result of taxable temporary differences", "Increase in taxes saved in future years as a result of deductible temporary differences"], answer: "Increase in taxes payable in future years as a result of taxable temporary differences" },
+                { id: "u4-6", question: `Gulfport Corporation's taxable income differed from its accounting income computed for this past year.
+Which item would create a permanent difference in accounting and taxable incomes for Gulfport?`, options: ["A fine resulting from violations of OSHA regulations", "Using accelerated depreciation for tax purposes and straight-line depreciation for book purposes", "Making installment sales during the year", "A balance in the Unearned Rent account at year-end"], answer: "A fine resulting from violations of OSHA regulations" },
+                { id: "u4-7", question: `When can tax rates other than the current tax rate be used to calculate the deferred income tax amount for financial statement reporting?`, options: ["When it is probable that a future tax rate change will occur", "When it appears likely that a future tax rate will be greater than the current tax rate", "When it appears likely that a future tax rate will be less than the current tax rate", "When the enacted tax rate is expected to apply in future years"], answer: "When the enacted tax rate is expected to apply in future years" },
+                { id: "u4-8", question: `What is a major distinction between temporary and permanent differences?`, options: ["Permanent differences are not representative of acceptable accounting practice.", "Once an item is determined to be a temporary difference, it maintains that status; however, a permanent difference can change in status with the passage of time.", "Temporary differences occur frequently, whereas permanent differences occur only once.", "Temporary differences reverse themselves in subsequent accounting periods, whereas permanent differences do not reverse."], answer: "Temporary differences reverse themselves in subsequent accounting periods, whereas permanent differences do not reverse." },
+                { id: "u4-9", question: `Hopkins Corp.'s 2020 income statement showed pretax accounting income of $1,035,000. To compute the federal income tax liability, the following 2020 data are provided:
+Income from exempt municipal bonds: $41,000
+Depreciation deducted for tax purposes in excess of depreciation deducted for financial statement purposes: $97,000
+Estimated federal income tax payments made: $159,500
+Enacted corporate income tax rate: 27.5%
+Which amount of current federal income tax liability should be included in Hopkins' December 31, 2020 balance sheet?`, options: ["$87,175", "$109,275", "$132,578", "$163,075"], answer: "$87,175" },
+                { id: "u4-10", question: `Which are temporary differences that are normally classified as expenses or losses and are deductible after they are recognized in financial income?`, options: ["Product warranty liabilities", "Advance rental receipts", "Fines and expenses resulting from a violation of law", "Depreciable property"], answer: "Product warranty liabilities" },
+                { id: "u4-11", question: `With regard to uncertain tax positions, when does the FASB require that companies recognize a tax benefit?`, options: ["It is more likely than not that the tax position will be sustained upon audit.", "There is at least a 51% probability that the uncertain tax position will be approved by the taxing authorities.", "It is probable and can not be reasonably estimated.", "It is probable and can be reasonably estimated."], answer: "It is more likely than not that the tax position will be sustained upon audit." },
+                { id: "u4-12", question: `What is the most consistent method for accounting for income taxes that the FASB believes in?`, options: ["Temporary-permanent method", "Carryback-carryforward method", "Asset-liability method", "Benefit-obligation method"], answer: "Asset-liability method" },
+                { id: "u4-13", question: `Howe Corporation has income before income taxes of $1,064,000 in 2020. The current provision for income taxes is $210,000 and the provision for deferred income taxes is $165,000. What is Howe’s net income for 2020?`, options: ["$1,019,000.00", "$854,000.00", "$899,000.00", "$689,000"], answer: "$689,000" },
+                { id: "u4-14", question: `What is an example of a permanent difference?`, options: ["Installment sales accounted for on an accrual basis", "Product warranty liabilities", "Interest received on state and municipal obligations", "Deductible pension funding exceeding expense"], answer: "Interest received on state and municipal obligations" },
+                { id: "u4-15", question: `Parker Corporation prepared the following reconciliation for 2020, its first year of operations:
+Pretax financial income for 2020: $2,060,000
+Tax exempt interest: $(350,000)
+Originating temporary difference: $690,000
+Taxable income is $1,020,000
+The temporary difference will reverse evenly over the next two years at an enacted tax rate of 35%. The enacted tax rate for 2020 is 30%.
+Which amount should Parker report in its 2020 income statement as the deferred portion of the provision for income taxes?`, options: ["$119,000", "$122,500", "$207,000", "$241,500"], answer: "$241,500" },
+                { id: "u4-16", question: `What is deferred tax expense?`, options: ["Increase in a deferred tax asset", "Increase in a deferred tax liability", "Decrease in a deferred tax asset", "Decrease in a deferred tax liability"], answer: "Increase in a deferred tax liability" },
+                { id: "u4-17", question: `How should deferred taxes be presented on the balance sheet?`, options: ["As reductions of the related asset or liability accounts", "As a noncurrent amount", "As a current amount", "As income"], answer: "As a noncurrent amount" },
+                { id: "u4-18", question: `How does taxable income of a corporation differ for financial and tax purposes?`, options: ["It differs from accounting income because companies use the full accrual method for financial reporting but use the modified cash basis for tax reporting.", "It is based on generally accepted accounting principles.", "It is reported on the corporation's income statement.", "It differs from accounting income due to differences in allocation between the two methods of income determination."], answer: "It differs from accounting income because companies use the full accrual method for financial reporting but use the modified cash basis for tax reporting." },
+                { id: "u4-19", question: `Which Financial Accounting Standards Board (FASB) asset-liability method should be used to present deferred taxes on the financial statement?`, options: ["As a single current asset or current liability", "As two amounts, one of which is a current asset and the other as a current liability", "As either net noncurrent deferred tax assets or noncurrent deferred tax liabilities", "As a noncurrent asset or liability on the income statement"], answer: "As either net noncurrent deferred tax assets or noncurrent deferred tax liabilities" },
+                { id: "u4-20", question: `Which type of tax rate is used to measure a deferred tax asset or liability when an entity's income is subjected to a graduated rate schedule?`, options: ["Marginal rates", "Historical rates", "Regressive rates", "Average rates"], answer: "Average rates" },
+                { id: "u4-21", question: `Which temporary difference increases net income in the current financial statements but is potentially taxable in a future period?`, options: ["Advance rental receipts", "Interest earned from tax-exempt bonds", "Proceeds from life insurance carried by the company on key officers", "Gain from involuntary conversion of a nonmonetary asset"], answer: "Gain from involuntary conversion of a nonmonetary asset" },
+                { id: "u4-22", question: `Which account may companies use to reduce income taxes payable?`, options: ["Sales tax", "Provision for federal income tax", "Allowance for probable income tax reductions", "Prepaid income taxes"], answer: "Prepaid income taxes" },
+                { id: "u4-23", question: `Which account may be used to reduce a deferred tax asset?`, options: ["Trade accounts receivable", "Valuation account", "Fixed asset", "Accounts payable"], answer: "Valuation account" },
+                { id: "u4-24", question: `What is the difference between a company's calculated tax expense and taxes payable based on tax laws?`, options: ["Deferred tax expense", "Ordinary tax expense", "Excise tax expense", "Income tax expense"], answer: "Deferred tax expense" },
+                { id: "u4-25", question: `Which situation causes a company to have a permanent difference between accounting and taxable incomes?`, options: ["Estimates of funds to be paid for warranties offered", "An allowance for bad debt for a large account receivable", "Wages accruing for quarterly commission payouts", "A fine resulting from violations of regulations"], answer: "A fine resulting from violations of regulations" },
+                { id: "u4-26", question: `Which item is considered a permanent difference between financial statements and taxable income?`, options: ["Stock-based compensation expense", "Interest earned from state and local bonds", "Advance rental receipts", "Product warranty liabilities"], answer: "Interest earned from state and local bonds" },
+                { id: "u4-27", question: `Which presentation of deferred taxes should be used on the balance sheet?`, options: ["As a reduction of shareholders' equity", "As a noncurrent amount", "As a current liability", "As a current asset"], answer: "As a noncurrent amount" },
+                { id: "u4-28", question: `Which Financial Accounting Standards Board (FASB) method will recognize the amount of taxes payable or refundable for the current year?`, options: ["Asset-liability", "Overpayment-underpayment", "Refund-remittance", "Federal-local"], answer: "Asset-liability" },
+                { id: "u4-29", question: `What does a deferred tax liability represent?`, options: ["Future tax liability", "Future taxable amount", "Future tax expense", "Future tax benefit"], answer: "Future tax liability" },
+                { id: "u4-30", question: `When may tax rates other than the current tax rate be used to calculate the deferred income tax amount on the balance sheet?`, options: ["When the rate changes have not yet achieved legislative approval, but the effective date is expected to be next year", "When the rate changes have been endorsed by the AICPA's technical standards division, but the effective date is in the future", "When the rate changes have been endorsed by the AICPA's technical standards division, but the effective date is uncertain", "When the rate changes have achieved legislative approval, but the effective date is expected to be the next year"], answer: "When the rate changes have achieved legislative approval, but the effective date is expected to be the next year" },
+                { id: "u4-31", question: `Which temporary difference results in a deferred tax asset?`, options: ["Interest payments received from municipal bonds", "Accrual for product warranty liability", "Dividends received from a joint venture", "Prepaid insurance expense"], answer: "Accrual for product warranty liability" },
+                { id: "u4-32", question: `Which partial entry should be used to record the temporary difference between income tax expense of $10,000 and income taxes payable of $12,000?`, options: ["Debit to a deferred tax asset", "Credit to a deferred tax liability", "Debit to a deferred tax liability", "Credit to a deferred tax asset"], answer: "Debit to a deferred tax asset" },
+                { id: "u4-33", question: `What is a deferred tax asset?`, options: ["A company's balance sheet account representing funds to be paid to the government", "A payment to a company, based on profitability, to be paid from the government", "A company's balance sheet account representing funds paid in advance to the government", "A payment to a company, based on profitability, that is paid in advance from the government"], answer: "A company's balance sheet account representing funds paid in advance to the government" },
+                { id: "u4-34", question: `Why is taxable income different from accounting income?`, options: ["Because companies use full accrual for tax reporting and modified cash basis for financial reporting", "Because the International Financial Reporting Standards Foundation requires the full accrual method over modified cash basis", "Because the International Financial Reporting Standards Foundation requires the modified cash basis over the full accrual method", "Because companies use full accrual for financial reporting and modified cash basis for tax reporting"], answer: "Because companies use full accrual for financial reporting and modified cash basis for tax reporting" },
+                { id: "u4-35", question: `Which Financial Accounting Standards Board (FASB) asset-liability method should be used to present deferred taxes on the financial statement?`, options: ["As a single current asset or current liability", "As either net noncurrent deferred tax assets or noncurrent deferred tax liabilities", "As a noncurrent asset or liability on the income statement", "As two amounts, one of which is a current asset and the other as a current liability"], answer: "As either net noncurrent deferred tax assets or noncurrent deferred tax liabilities" },
+                { id: "u4-36", question: `In Year 1, a company reported $30,000,000 in gross revenue, $22,000,000 in operating profit, $15,000,000 in net income before taxes on the financial statements, and $18,000,000 in taxable income. The difference between reported and taxable income is expected to be temporary and to reverse in the next year. The tax rate for Year 1 is 25%, and the tax rate for Year 2 is 28%.
+Which amount should the company record as a net deferred tax asset in Year 1?`, options: ["$750,000", "$840,000", "$1,000,000", "$3,360,000"], answer: "$840,000" },
+                { id: "u4-37", question: `Which situation causes a company to have a permanent difference between accounting and taxable incomes?`, options: ["Estimates of funds to be paid for warranties offered", "A fine resulting from violations of regulations", "Wages accruing for quarterly commission payouts", "An allowance for bad debt for a large account receivable"], answer: "A fine resulting from violations of regulations" }
+            ]
+        };
 
-// Full array would go here (44 items). For this example I'll simulate with first few + note.
-// In your real file, paste the complete quizData array from the Python version converted like above.
+        const Icon = ({ name, className = "" }) => {
+            if (name === 'check') return (
+                <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            );
+            if (name === 'x') return (
+                <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            );
+            return null;
+        };
 
-let currentQuestion = 0;
-let score = 0;
-let shuffledQuestions = [];
+        const LucideIcon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
 
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
+        const App = () => {
+            const [view, setView] = useState('menu'); 
+            const [currentUnit, setCurrentUnit] = useState(null);
+            const [questions, setQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [isCompleted, setIsCompleted] = useState(false);
+            const [showFeedback, setShowFeedback] = useState(false);
 
-function startQuiz() {
-  shuffledQuestions = shuffle([...quizData]);
-  currentQuestion = 0;
-  score = 0;
-  document.getElementById("feedback").innerHTML = "";
-  document.getElementById("score").innerHTML = "";
-  document.getElementById("restart-btn").style.display = "none";
-  document.getElementById("next-btn").style.display = "none";
-  document.getElementById("submit-btn").style.display = "inline-block";
-  nextQuestion();
-}
+            useEffect(() => {
+                if (currentUnit && (view === 'quiz' || view === 'results')) {
+                    localStorage.setItem(`accounting_study_hub_progress_${currentUnit}`, JSON.stringify({
+                        unit: currentUnit,
+                        questions,
+                        currentIndex,
+                        answers,
+                        isCompleted,
+                        showFeedback
+                    }));
+                }
+            }, [view, currentUnit, questions, currentIndex, answers, isCompleted, showFeedback]);
 
-function nextQuestion() {
-  if (currentQuestion >= shuffledQuestions.length) {
-    showFinalScore();
-    return;
-  }
+            const handleUnitSelect = (unitId) => {
+                const saved = localStorage.getItem(`accounting_study_hub_progress_${unitId}`);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.unit && !parsed.isCompleted && parsed.questions && parsed.questions.length > 0) {
+                            const resume = window.confirm(`Resume previous session for ${unitId.toUpperCase()}?`);
+                            if (resume) {
+                                setCurrentUnit(unitId);
+                                setQuestions(parsed.questions);
+                                setCurrentIndex(parsed.currentIndex);
+                                setAnswers(parsed.answers || {});
+                                setShowFeedback(parsed.showFeedback || false);
+                                setIsCompleted(false);
+                                setView('quiz');
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        localStorage.removeItem(`accounting_study_hub_progress_${unitId}`);
+                    }
+                }
+                startQuiz(unitId);
+            };
 
-  const q = shuffledQuestions[currentQuestion];
-  document.getElementById("progress").innerHTML = `Question ${currentQuestion + 1} of ${shuffledQuestions.length}`;
-  document.getElementById("question-text").innerHTML = q.q;
-  const optsDiv = document.getElementById("options");
-  optsDiv.innerHTML = "";
+            const startQuiz = (unitKey) => {
+                const rawQuestions = QUESTION_DATA[unitKey] || [];
+                const shuffledQuestions = shuffleArray(rawQuestions).map(q => ({
+                    ...q,
+                    shuffledOptions: shuffleArray(q.options)
+                }));
+                
+                setCurrentUnit(unitKey);
+                setQuestions(shuffledQuestions);
+                setCurrentIndex(0);
+                setAnswers({});
+                setIsCompleted(false);
+                setShowFeedback(false);
+                setView('quiz');
+                localStorage.removeItem(`accounting_study_hub_progress_${unitKey}`);
+            };
 
-  q.options.forEach((opt, i) => {
-    const letter = String.fromCharCode(65 + i);
-    optsDiv.innerHTML += `
-      <label>
-        <input type="radio" name="answer" value="${letter}">
-        ${opt}
-      </label>
-    `;
-  });
+            const handleAnswer = (option) => {
+                if (showFeedback) return; 
+                setAnswers(prev => ({ ...prev, [currentIndex]: option }));
+                setShowFeedback(true);
+            };
 
-  document.getElementById("feedback").innerHTML = "";
-  document.getElementById("submit-btn").disabled = false;
-  document.getElementById("next-btn").style.display = "none";
-}
+            const nextQuestion = () => {
+                if (currentIndex < questions.length - 1) {
+                    setShowFeedback(false);
+                    setCurrentIndex(prev => prev + 1);
+                } else {
+                    setIsCompleted(true);
+                    setView('results');
+                }
+            };
 
-function checkAnswer() {
-  const selected = document.querySelector('input[name="answer"]:checked');
-  if (!selected) {
-    alert("Please select an answer!");
-    return;
-  }
+            const prevQuestion = () => {
+                if (currentIndex > 0) {
+                    const hasAnswer = !!answers[currentIndex - 1];
+                    setShowFeedback(hasAnswer);
+                    setCurrentIndex(prev => prev - 1);
+                }
+            };
 
-  const userAnswer = selected.value;
-  const correctAnswer = shuffledQuestions[currentQuestion].a;
+            const goToMenu = () => {
+                setView('menu');
+            };
 
-  document.getElementById("submit-btn").disabled = true;
+            const calculateScore = () => {
+                let correct = 0;
+                questions.forEach((q, idx) => {
+                    if (answers[idx] === q.answer) correct++;
+                });
+                return correct;
+            };
 
-  const feedback = document.getElementById("feedback");
-  if (userAnswer === correctAnswer) {
-    feedback.innerHTML = "Correct!";
-    feedback.className = "correct";
-    score++;
-  } else {
-    feedback.innerHTML = `Incorrect. The correct answer is ${correctAnswer}.
+            if (view === 'menu') {
+                return (
+                    <div className="max-w-4xl mx-auto p-6 mt-10">
+                        <header className="text-center mb-12">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2 font-normal">Accounting Study Hub</h1>
+                            <p className="text-gray-600 font-normal">Select a unit to begin practicing</p>
+                        </header>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[
+                                { id: 'unit2', title: 'Unit 2: Revenue Recognition', count: 26, icon: 'dollar-sign', color: 'bg-emerald-600' },
+                                { id: 'unit3', title: 'Unit 3: Investments', count: 44, icon: 'bar-chart-2', color: 'bg-blue-600' },
+                                { id: 'unit4', title: 'Unit 4: Income Taxes', count: 37, icon: 'file-text', color: 'bg-orange-600' }
+                            ].map(unit => (
+                                <button
+                                    key={unit.id}
+                                    onClick={() => handleUnitSelect(unit.id)}
+                                    className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow text-left group"
+                                >
+                                    <div className={`${unit.color} text-white p-3 rounded-lg inline-block mb-4 group-hover:scale-110 transition-transform`}>
+                                        <LucideIcon name={unit.icon} size={28} />
+                                    </div>
+                                    <h2 className="text-xl font-semibold text-gray-800 mb-2 font-normal">{unit.title}</h2>
+                                    <p className="text-sm text-gray-500 font-normal">{unit.count} Verbatim Questions</p>
+                                    <div className="mt-4 flex items-center text-blue-600 font-medium font-normal">
+                                        Practice <LucideIcon name="arrow-right" size={16} className="ml-2" />
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'quiz') {
+                const q = questions[currentIndex];
+                if (!q) return <div className="p-8 text-center">Loading session...</div>;
+
+                return (
+                    <div className="max-w-3xl mx-auto p-4 md:p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <button onClick={goToMenu} className="flex items-center text-gray-500 hover:text-gray-800 font-normal">
+                                <LucideIcon name="home" size={18} className="mr-2" /> Menu
+                            </button>
+                            <div className="bg-white px-4 py-1 rounded-full border text-sm font-medium text-gray-600 font-normal">
+                                Question {currentIndex + 1} of {questions.length}
+                            </div>
+                        </div>
+
+                        <div className="mb-4 bg-gray-200 h-2 rounded-full overflow-hidden text-left">
+                            <div 
+                                className="bg-blue-500 h-full transition-all duration-300" 
+                                style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                            />
+                        </div>
+
+                        <div key={`${currentUnit}-${currentIndex}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6 text-left">
+                            <h3 className="text-lg font-normal text-gray-800 mb-8 pre-line leading-relaxed">
+                                {q.question}
+                            </h3>
+
+                            <div className="space-y-3">
+                                {(q.shuffledOptions || q.options).map((opt, i) => {
+                                    const isSelected = answers[currentIndex] === opt;
+                                    const isCorrect = opt === q.answer;
+                                    
+                                    let buttonStyle = 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50';
+                                    let circleStyle = 'bg-gray-100 text-gray-500';
+
+                                    if (showFeedback) {
+                                        if (isCorrect) {
+                                            buttonStyle = 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500';
+                                            circleStyle = 'bg-emerald-500 text-white';
+                                        } else if (isSelected && !isCorrect) {
+                                            buttonStyle = 'bg-red-50 border-red-500 ring-1 ring-red-500';
+                                            circleStyle = 'bg-red-500 text-white';
+                                        } else {
+                                            buttonStyle = 'bg-white border-gray-100 opacity-60';
+                                        }
+                                    } else if (isSelected) {
+                                        buttonStyle = 'bg-blue-50 border-blue-500 ring-1 ring-blue-500';
+                                        circleStyle = 'bg-blue-500 text-white';
+                                    }
+
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleAnswer(opt)}
+                                            disabled={showFeedback}
+                                            className={`w-full p-3 text-left text-base font-normal rounded-lg border transition-all ${buttonStyle}`}
+                                        >
+                                            <div className="flex items-start">
+                                                <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 text-xs shrink-0 ${circleStyle}`}>
+                                                    {showFeedback && isCorrect ? <Icon name="check" /> : 
+                                                     showFeedback && isSelected && !isCorrect ? <Icon name="x" /> : 
+                                                     String.fromCharCode(65 + i)}
+                                                </span>
+                                                <span className="flex-1">{opt}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {showFeedback && (
+                                <div className={`mt-6 p-4 rounded-lg flex items-center feedback-enter ${
+                                    answers[currentIndex] === q.answer ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
+                                }`}>
+                                    <LucideIcon 
+                                        name={answers[currentIndex] === q.answer ? "check-circle" : "alert-circle"} 
+                                        className="mr-3 shrink-0" 
+                                    />
+                                    <p className="font-normal text-sm">
+                                        {answers[currentIndex] === q.answer 
+                                            ? "Correct!" 
+                                            : `Incorrect. The correct answer is: ${q.answer}`}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <button
+                                onClick={prevQuestion}
+                                disabled={currentIndex === 0}
+                                className={`flex items-center px-6 py-2 rounded-lg font-normal transition-colors ${
+                                    currentIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200'
+                                }`}
+                            >
+                                <LucideIcon name="chevron-left" size={20} className="mr-1" /> Previous
+                            </button>
+                            <button
+                                onClick={nextQuestion}
+                                disabled={!answers[currentIndex]}
+                                className={`flex items-center px-8 py-3 rounded-lg font-normal transition-all shadow-sm ${
+                                    !answers[currentIndex]
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 active:transform active:scale-95'
+                                }`}
+                            >
+                                {currentIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+                                <LucideIcon name="chevron-right" size={20} className="ml-1" />
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'results') {
+                const score = calculateScore();
+                const percentage = Math.round((score / (questions.length || 1)) * 100);
+
+                return (
+                    <div className="max-w-4xl mx-auto p-6 mt-10">
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="bg-blue-600 p-12 text-center text-white">
+                                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+                                    <LucideIcon name="award" size={40} />
+                                </div>
+                                <h2 className="text-3xl font-bold mb-2 font-normal">Quiz Complete!</h2>
+                                <p className="text-blue-100 font-normal">You've finished {currentUnit?.toUpperCase()}</p>
+                            </div>
+                            
+                            <div className="p-8 md:p-12">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                                    <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                                        <p className="text-gray-500 text-sm mb-1 font-normal uppercase tracking-wider">Score</p>
+                                        <p className="text-4xl font-bold text-gray-800 font-normal">{score} / {questions.length}</p>
+                                    </div>
+                                    <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                                        <p className="text-gray-500 text-sm mb-1 font-normal uppercase tracking-wider">Accuracy</p>
+                                        <p className="text-4xl font-bold text-gray-800 font-normal">{percentage}%</p>
+                                    </div>
+                                    <div className="text-center p-6 bg-gray-50 rounded-2xl">
+                                        <p className="text-gray-500 text-sm mb-1 font-normal uppercase tracking-wider">Status</p>
+                                        <p className={`text-4xl font-bold font-normal ${percentage >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                            {percentage >= 70 ? 'Pass' : 'Review'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <h3 className="text-xl font-semibold text-gray-800 font-normal">Review Answers</h3>
+                                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                                        {questions.map((q, idx) => {
+                                            const isCorrect = answers[idx] === q.answer;
+                                            return (
+                                                <div key={idx} className={`p-5 rounded-xl border ${isCorrect ? 'border-emerald-100 bg-emerald-50/30' : 'border-red-100 bg-red-50/30'} text-left`}>
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-xs font-bold text-gray-400 uppercase">Question {idx + 1}</span>
+                                                        {isCorrect ? <Icon name="check" className="text-emerald-500" /> : <Icon name="x" className="text-red-500" />}
+                                                    </div>
+                                                    <p className="text-gray-800 mb-3 pre-line font-normal">{q.question}</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                        <div className="font-normal">
+                                                            <span className="text-gray-500 block mb-1 uppercase text-[10px]">Your Answer:</span>
+                                                            <span className={isCorrect ? "text-emerald-700" : "text-red-700"}>{answers[idx] || "No answer"}</span>
+                                                        </div>
+                                                        {!isCorrect && (
+                                                            <div className="font-normal">
+                                                                <span className="text-gray-500 block mb-1 uppercase text-[10px]">Correct Answer:</span>
+                                                                <span className="text-emerald-700">{q.answer}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="mt-12 flex flex-col md:flex-row gap-4 justify-center">
+                                    <button
+                                        onClick={() => startQuiz(currentUnit)}
+                                        className="flex items-center justify-center px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm font-normal"
+                                    >
+                                        <LucideIcon name="refresh-cw" size={18} className="mr-2" /> Try Again
+                                    </button>
+                                    <button
+                                        onClick={goToMenu}
+                                        className="flex items-center justify-center px-8 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-normal"
+                                    >
+                                        <LucideIcon name="home" size={18} className="mr-2" /> Back to Menu
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            return null;
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
